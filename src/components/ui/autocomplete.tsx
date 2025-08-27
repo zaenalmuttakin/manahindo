@@ -18,6 +18,7 @@ interface AutocompleteProps {
   onInputChange: (search: string) => void;
   placeholder?: string;
   emptyMessage?: string;
+  isFocused?: boolean;
 }
 
 export function Autocomplete({
@@ -26,9 +27,16 @@ export function Autocomplete({
   onChange,
   onInputChange,
   placeholder,
-  emptyMessage
+  emptyMessage,
+  isFocused
 }: AutocompleteProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (isFocused && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused]);
   const listRef = React.useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = React.useState(value?.label || "");
   const [isListOpen, setListOpen] = React.useState(false);
@@ -59,15 +67,12 @@ export function Autocomplete({
     if (!isListOpen) {
         setListOpen(true);
     }
-    if (value) {
-      onChange(null);
-    }
   };
 
   const handleSelect = (option: AutocompleteOption) => {
     setInputValue(option.label);
     onChange(option);
-    setTimeout(() => setListOpen(false), 0);
+    setListOpen(false);
   };
 
   const handleBlur = () => {
@@ -127,7 +132,10 @@ export function Autocomplete({
                       key={option.value}
                       data-index={index}
                       value={option.label}
-                      onSelect={() => handleSelect(option)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelect(option);
+                      }}
                       className={cn(
                         highlightedIndex === index && "bg-muted"
                       )}

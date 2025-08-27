@@ -49,7 +49,7 @@ interface ExpenseFormProps {
 }
 
 export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) {
-  const { register, control, handleSubmit, reset, setValue, watch } = useForm<FormData>({
+  const { control, handleSubmit, reset, setValue, watch } = useForm<FormData>({
     defaultValues: {
       store: null,
       date: new Date(),
@@ -83,6 +83,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
     name: "items",
   });
 
+  const [newlyAddedIndex, setNewlyAddedIndex] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [storeOptions, setStoreOptions] = useState<AutocompleteOption[]>([]);
   const [productOptions, setProductOptions] = useState<Record<number, ProductAutocompleteOption[]>>({});
@@ -206,10 +207,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                     emptyMessage="Toko tidak ditemukan."
                     options={storeOptions}
                     value={field.value ?? undefined}
-                    onInputChange={(search) => {
-                      fetchStores(search);
-                      if(field.value) field.onChange(null); // Invalidate selection if typing again
-                    }}
+                    onInputChange={fetchStores}
                     onChange={(option) => field.onChange(option)}
                   />
                 )}
@@ -257,7 +255,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                             if (selectedStore) {
                               fetchProducts(search, selectedStore.value, index);
                             }
-                            if(productField.value) productField.onChange(null); // Invalidate
+                            setNewlyAddedIndex(null); // Reset focus trigger when user types
                           }}
                           onChange={(option) => {
                             productField.onChange(option);
@@ -265,16 +263,34 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                             if (option && 'price' in option) {
                               setValue(`items.${index}.price`, (option as ProductAutocompleteOption).price, { shouldValidate: true });
                             }
+                            setNewlyAddedIndex(null); // Reset focus trigger after selection
                           }}
+                          isFocused={index === newlyAddedIndex}
                         />
                       )}
                     />
                   </div>
                   <div className="col-span-1">
-                    <Input
-                      type="number"
-                      placeholder="Qty"
-                      {...register(`items.${index}.quantity`, { valueAsNumber: true, min: 1 })}
+                    <Controller
+                      control={control}
+                      name={`items.${index}.quantity`}
+                      rules={{ required: "Qty harus diisi", min: { value: 0, message: "Qty tidak boleh negatif" } }}
+                      render={({ field }) => (
+                        <Input
+                          type="number"
+                          placeholder="Qty"
+                          {...field}
+                          onChange={(e) => {
+                            const numValue = e.target.valueAsNumber;
+                            if (isNaN(numValue)) {
+                              field.onChange(undefined); // Treat invalid/empty input as undefined
+                            } else {
+                              field.onChange(Math.max(0, numValue)); // Ensure value is never negative
+                            }
+                          }}
+                          value={field.value ?? ""}
+                        />
+                      )}
                     />
                   </div>
                   <div className="col-span-2">
@@ -304,7 +320,16 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" className="mt-2" onClick={() => append({ product: null, quantity: undefined, price: undefined })}>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2"
+              onClick={() => {
+                const newIndex = fields.length;
+                append({ product: null, quantity: undefined, price: undefined });
+                setNewlyAddedIndex(newIndex);
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" /> Tambah Barang
             </Button>
           </div>

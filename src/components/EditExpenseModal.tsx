@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ExpenseForm from "./ExpenseForm";
-import { Expense } from "@/models/Expense"; // Assuming Expense model is exported
+import { Expense } from "./ExpenseTable";
 
 interface EditExpenseModalProps {
   isOpen: boolean;

@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search');
 
-    const pipeline: any[] = [
+    const pipeline: mongoose.PipelineStage[] = [
       {
         $lookup: {
           from: 'stores',

@@ -1,13 +1,14 @@
-import { Schema, model, models, Document } from 'mongoose';
+import mongoose, { Schema, model, models, Document } from 'mongoose';
 
-export interface IExpenseItem {
-  name: string;
-  qty: number;
+export interface IExpenseItem extends Document {
+  product: mongoose.Schema.Types.ObjectId;
+  name: string; // Keep name for display purposes, but link to product
+  quantity: number;
   price: number;
 }
 
 export interface IExpense extends Document {
-  store: string;
+  store: mongoose.Schema.Types.ObjectId;
   items: IExpenseItem[];
   total: number;
   date: Date;
@@ -15,12 +16,18 @@ export interface IExpense extends Document {
 
 const ExpenseSchema = new Schema({
   store: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Store',
     required: true,
   },
   items: [{
-    name: String,
-    qty: Number,
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true,
+    },
+    name: String, // Denormalized for easier display
+    quantity: Number,
     price: Number,
   }],
   total: {
@@ -31,6 +38,6 @@ const ExpenseSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-});
+}, { timestamps: true });
 
 export default models.Expense || model<IExpense>('Expense', ExpenseSchema);

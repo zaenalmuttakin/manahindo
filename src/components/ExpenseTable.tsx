@@ -2,70 +2,86 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, PlusCircle, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import ExpenseForm from './ExpenseForm';
 
-interface ExpenseItem {
+// Interface for Store information
+interface StoreInfo {
+  _id: string;
   name: string;
-  qty: number;
+}
+
+// Interface for individual expense items
+interface ExpenseItem {
+  product: string; // product ID
+  name: string; // denormalized name
+  quantity: number;
   price: number;
 }
 
-interface Expense {
+// Main Expense interface, exported for use in page.tsx
+export interface Expense {
   _id: string;
-  store: string;
+  store: string; // store ID
   items: ExpenseItem[];
   total: number;
   date: string;
+  storeInfo: StoreInfo; // Populated by aggregation
 }
 
-export default function ExpenseTable() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+// Props for the ExpenseTable component
+interface ExpenseTableProps {
+  expenses: Expense[];
+  loading: boolean;
+  onDataChange: () => void;
+}
+
+export default function ExpenseTable({ expenses, loading, onDataChange }: ExpenseTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchDate, setSearchDate] = useState<Date | undefined>();
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [abbreviations, setAbbreviations] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [groupsPerPage, setGroupsPerPage] = useState(5);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedExpense, setEditedExpense] = useState<Partial<Expense> | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
-  const [confirmStoreName, setConfirmStoreName] = useState('');
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [confirmationText, setConfirmationText] = useState("");
 
+  // Fetch abbreviations on mount
   useEffect(() => {
-    fetchExpenses();
     fetchAbbreviations();
   }, []);
 
+  // Effect to filter expenses whenever the source data or filters change
   useEffect(() => {
     let filtered = expenses;
 
     if (searchTerm) {
-      filtered = filtered.map(expense => ({
-        ...expense,
-        items: expense.items.filter(item => 
-          item.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      })).filter(expense => expense.items.length > 0);
+      const lowercasedFilter = searchTerm.toLowerCase();
+      filtered = filtered.filter(expense => 
+        expense.storeInfo.name.toLowerCase().includes(lowercasedFilter) ||
+        expense.items.some(item => item.name.toLowerCase().includes(lowercasedFilter))
+      );
     }
 
     if (searchDate) {
@@ -80,121 +96,64 @@ export default function ExpenseTable() {
     }
 
     setFilteredExpenses(filtered);
+    setCurrentPage(1); // Reset to first page on filter change
   }, [searchTerm, searchDate, expenses]);
-
-  const fetchExpenses = async () => {
-    try {
-      const res = await fetch('/api/expenses');
-      const data = await res.json();
-      setExpenses(data);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-    }
-  };
 
   const fetchAbbreviations = async () => {
     try {
       const res = await fetch('/api/abbreviations');
       const data = await res.json();
-      setAbbreviations(data);
+      if (Array.isArray(data)) {
+        setAbbreviations(data);
+      }
     } catch (error) {
       console.error('Error fetching abbreviations:', error);
     }
   };
 
-  const handleEdit = (expense: Expense) => {
-    setEditingId(expense._id);
-    setEditedExpense({ ...expense });
+  const handleDeleteClick = (expense: Expense) => {
+    setExpenseToDelete(expense);
+    setIsDeleteDialogOpen(true);
   };
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setEditedExpense(null);
-  };
-
-  const handleSave = async () => {
-    if (!editedExpense || !editingId) return;
-
-    const total = editedExpense.items?.reduce((acc, item) => acc + (item.qty || 0) * (item.price || 0), 0) || 0;
-    const finalExpense = { ...editedExpense, total };
+  const handleConfirmDelete = async () => {
+    if (!expenseToDelete) return;
 
     try {
-      const res = await fetch(`/api/expenses?id=${editingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(finalExpense),
-      });
-
-      if (res.ok) {
-        const updatedExpense = await res.json();
-        setExpenses(prev => prev.map(exp => exp._id === editingId ? updatedExpense : exp));
-        handleCancel();
-      }
-    } catch (error) {
-      console.error('Error updating expense:', error);
-    }
-  };
-
-  const handleDelete = (expense: Expense) => {
-    setDeleteTarget(expense);
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-
-    try {
-      const res = await fetch(`/api/expenses?id=${deleteTarget._id}`, {
+      const res = await fetch(`/api/expenses?id=${expenseToDelete._id}`, {
         method: 'DELETE',
       });
-
       if (res.ok) {
-        setExpenses(prev => prev.filter(exp => exp._id !== deleteTarget._id));
-        setShowDeleteConfirm(false);
-        setDeleteTarget(null);
-        setConfirmStoreName('');
+        toast.success('Data berhasil dihapus!');
+        onDataChange(); // Notify parent to refetch
+      } else {
+        const errorData = await res.json();
+        toast.error(`Gagal menghapus: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting expense:', error);
+      toast.error('Terjadi kesalahan jaringan');
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setExpenseToDelete(null);
+      setConfirmationText("");
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof Expense) => {
-    if (editedExpense) {
-      setEditedExpense({ ...editedExpense, [field]: e.target.value });
-    }
+  // --- Edit Handlers ---
+  const handleEditClick = (expenseId: string) => {
+    setEditingExpenseId(expenseId);
   };
 
-  const handleItemChange = (e: React.ChangeEvent<HTMLInputElement>, index: number, field: keyof ExpenseItem) => {
-    if (editedExpense && editedExpense.items) {
-      const newItems = [...editedExpense.items];
-      const item = newItems[index];
-
-      if (field === 'name') {
-        item[field] = e.target.value;
-      } else { // field is 'qty' or 'price'
-        item[field] = parseFloat(e.target.value) || 0;
-      }
-
-      setEditedExpense({ ...editedExpense, items: newItems });
-    }
+  const handleCancelEdit = () => {
+    setEditingExpenseId(null);
   };
 
-  const handleAddItem = () => {
-    if (editedExpense && editedExpense.items) {
-      const newItems = [...editedExpense.items, { name: '', qty: 0, price: 0 }];
-      setEditedExpense({ ...editedExpense, items: newItems });
-    }
+  const handleUpdateSuccess = () => {
+    setEditingExpenseId(null);
+    onDataChange(); // Notify parent to refetch
   };
-
-  const handleRemoveItem = (index: number) => {
-    if (editedExpense && editedExpense.items) {
-      const newItems = editedExpense.items.filter((_, i) => i !== index);
-      setEditedExpense({ ...editedExpense, items: newItems });
-    }
-  };
+  // ---------------------
 
   const toTitleCase = (str: string) => {
     if (!str) return '';
@@ -202,32 +161,31 @@ export default function ExpenseTable() {
       if (abbreviations.includes(word.toUpperCase())) {
         return word.toUpperCase();
       }
-      return word.charAt(0).toUpperCase() + word.slice(1);
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     }).join(' ');
   };
 
-  const groupedByDate = filteredExpenses.reduce((acc: { [key: string]: Expense[] }, expense) => {
+  const groupedByDate = filteredExpenses.reduce((acc: Map<string, Expense[]>, expense) => {
     const date = new Date(expense.date).toLocaleDateString('id-ID', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-    if (!acc[date]) {
-      acc[date] = [];
+    if (!acc.has(date)) {
+      acc.set(date, []);
     }
-    acc[date].push(expense);
+    acc.get(date)!.push(expense);
     return acc;
-  }, {});
+  }, new Map<string, Expense[]>());
 
-  const dateGroups = Object.entries(groupedByDate);
+  const dateGroups = Array.from(groupedByDate.entries());
   const safeGroupsPerPage = groupsPerPage > 0 ? groupsPerPage : 1;
   const totalPages = Math.ceil(dateGroups.length / safeGroupsPerPage);
 
   const handleGroupsPerPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const num = parseInt(value, 10);
-
     if (value === "" || (num > 0 && !isNaN(num))) {
       setGroupsPerPage(num || 0);
       setCurrentPage(1);
@@ -239,181 +197,99 @@ export default function ExpenseTable() {
     currentPage * safeGroupsPerPage
   );
 
+  if (loading) {
+    return <Card className="flex flex-col h-full items-center justify-center"><p>Memuat data...</p></Card>;
+  }
+
   return (
     <>
-      {showDeleteConfirm && deleteTarget && (
-        <div className="fixed inset-0 bg-opacity-10 backdrop-blur-sm z-40 flex justify-center items-center">
-          <Card className="w-full max-w-md m-4">
-            <CardHeader>
-              <CardTitle>Hapus Pengeluaran</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p>
-                Anda akan menghapus data belanja dari <span className="font-bold">{toTitleCase(deleteTarget.store)}</span>.
-                Tindakan ini tidak dapat diurungkan.
-              </p>
-              <div>
-                <Label htmlFor="confirm-delete" className="block mb-2">Ketik &ldquo;<span className="font-bold text-red-500">{deleteTarget.store}</span>&rdquo; untuk konfirmasi</Label>
-                <Input
-                  id="confirm-delete"
-                  value={confirmStoreName}
-                  onChange={(e) => setConfirmStoreName(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => {
-                setShowDeleteConfirm(false);
-                setDeleteTarget(null);
-                setConfirmStoreName('');
-              }}>Batal</Button>
-              <Button
-                variant="destructive"
-                onClick={confirmDelete}
-                disabled={confirmStoreName !== deleteTarget.store}
-              >
-                Hapus Permanen
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-      <Card className="md:sticky md:top-4 md:flex md:flex-col md:max-h-[calc(100vh-2rem)]">
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <CardTitle>Riwayat Belanja</CardTitle>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
-            <Input
-              placeholder="Cari nama barang..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !searchDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {searchDate ? format(searchDate, "dd MMMM yyyy") : <span>Pilih tanggal</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={searchDate}
-                  onSelect={setSearchDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="search-input">Cari Data</Label>
+              <Input
+                id="search-input"
+                placeholder="Cari nama toko atau barang..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="search-date">Filter Tanggal</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="search-date"
+                    variant={"outline"}
+                    className={cn("w-full justify-start text-left font-normal", !searchDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {searchDate ? format(searchDate, "dd MMMM yyyy") : <span>Pilih tanggal</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={searchDate} onSelect={setSearchDate} initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto">
-          {paginatedDateGroups.map(([date, dateExpenses]) => (
-            <div key={date} className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">{date}</h2>
-
-              {dateExpenses.map((expense) => (
-                <div key={expense._id} className="mb-6">
-                  {editingId === expense._id ? (
-                    <div>
-                      <Input
-                        value={editedExpense?.store || ''}
-                        onChange={(e) => handleInputChange(e, 'store')}
-                        className="text-lg font-medium mb-2"
+          {paginatedDateGroups.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">Tidak ada data untuk ditampilkan.</div>
+          ) : (
+            paginatedDateGroups.map(([date, dateExpenses]) => (
+              <div key={date} className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">{date}</h2>
+                {dateExpenses.map((expense) => (
+                  <div key={expense._id} className="mb-6 border rounded-lg p-4">
+                    {editingExpenseId === expense._id ? (
+                      <ExpenseForm 
+                        expense={expense} 
+                        onSuccess={handleUpdateSuccess}
+                        onCancel={handleCancelEdit}
                       />
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nama Barang</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Harga</TableHead>
-                            <TableHead>Jumlah</TableHead>
-                            <TableHead>Aksi</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {editedExpense?.items?.map((item, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <Input value={item.name} onChange={(e) => handleItemChange(e, index, 'name')} />
-                              </TableCell>
-                              <TableCell>
-                                <Input type="number" value={item.qty} onChange={(e) => handleItemChange(e, index, 'qty')} />
-                              </TableCell>
-                              <TableCell>
-                                <Input type="number" value={item.price} onChange={(e) => handleItemChange(e, index, 'price')} />
-                              </TableCell>
-                              <TableCell>{(item.qty * item.price).toLocaleString('id-ID')}</TableCell>
-                              <TableCell>
-                                <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
+                    ) : (
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">{toTitleCase(expense.storeInfo.name)}</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Nama Barang</TableHead>
+                              <TableHead>Qty</TableHead>
+                              <TableHead>Harga</TableHead>
+                              <TableHead>Jumlah</TableHead>
                             </TableRow>
-                          ))}
-                          <TableRow>
-                            <TableCell colSpan={5}>
-                              <Button variant="outline" size="sm" onClick={handleAddItem}>
-                                <PlusCircle className="h-4 w-4 mr-2" />
-                                Tambah Item
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                          <TableRow className="font-bold">
-                            <TableCell colSpan={3} className="text-right">Total</TableCell>
-                            <TableCell>{editedExpense?.items?.reduce((acc, item) => acc + item.qty * item.price, 0).toLocaleString('id-ID')}</TableCell>
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                      <div className="flex justify-end space-x-2 mt-4">
-                        <Button variant="outline" onClick={handleCancel}>Batal</Button>
-                        <Button onClick={handleSave}>Simpan</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">{toTitleCase(expense.store)}</h3>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nama Barang</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Harga</TableHead>
-                            <TableHead>Jumlah</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {expense.items.map((item, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{toTitleCase(item.name)}</TableCell>
-                              <TableCell>{item.qty}</TableCell>
-                              <TableCell>{item.price.toLocaleString('id-ID')}</TableCell>
-                              <TableCell>{(item.qty * item.price).toLocaleString('id-ID')}</TableCell>
+                          </TableHeader>
+                          <TableBody>
+                            {expense.items.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{toTitleCase(item.name)}</TableCell>
+                                <TableCell>{item.quantity}</TableCell>
+                                <TableCell>{item.price.toLocaleString('id-ID')}</TableCell>
+                                <TableCell>{(item.quantity * item.price).toLocaleString('id-ID')}</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="font-bold">
+                              <TableCell colSpan={3} className="text-right">Total</TableCell>
+                              <TableCell>{expense.total.toLocaleString('id-ID')}</TableCell>
                             </TableRow>
-                          ))}
-                          <TableRow className="font-bold">
-                            <TableCell colSpan={3} className="text-right">Total</TableCell>
-                            <TableCell>{expense.total.toLocaleString('id-ID')}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                      <div className="flex justify-end space-x-2 mt-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(expense)}>Edit</Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(expense)}>Hapus</Button>
+                          </TableBody>
+                        </Table>
+                        <div className="flex justify-end space-x-2 mt-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEditClick(expense._id)}>Edit</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(expense)}>Hapus</Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t pt-6">
           <div className="flex items-center space-x-2">
@@ -450,6 +326,42 @@ export default function ExpenseTable() {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogPortal>
+          <DialogOverlay className="bg-white/10 backdrop-blur-sm dark:bg-zinc-950/20" />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Apakah Anda yakin?</DialogTitle>
+              <DialogDescription>
+                Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data belanja dari toko{" "}
+                <span className="font-bold">{toTitleCase(expenseToDelete?.storeInfo.name || '')}</span> secara permanen.
+                <br />
+                Untuk mengonfirmasi, ketik{" "}
+                &ldquo;<span className="font-bold text-red-500">{toTitleCase(expenseToDelete?.storeInfo.name || '')}</span>&rdquo; di bawah ini.
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              value={confirmationText}
+              onChange={(e) => setConfirmationText(e.target.value)}
+              placeholder="Ketik nama toko untuk konfirmasi"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                disabled={confirmationText !== toTitleCase(expenseToDelete?.storeInfo.name || '')}
+              >
+                Hapus
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
     </>
   );
 }

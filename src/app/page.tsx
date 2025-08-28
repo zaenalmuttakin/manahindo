@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ExpenseForm from '@/components/ExpenseForm';
-import ExpenseTable, { Expense } from '@/components/ExpenseTable';
+import ExpenseForm from '@/components/form/expense/ExpenseForm';
+import ExpenseTable, { Expense } from '@/components/table/expense/ExpenseTable';
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);

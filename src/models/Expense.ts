@@ -12,6 +12,8 @@ export interface IExpense extends Document {
   items: IExpenseItem[];
   total: number;
   date: Date;
+  attachments?: string[];
+  thumbnailPath?: string; // New field for thumbnail
 }
 
 const ExpenseSchema = new Schema({
@@ -37,6 +39,14 @@ const ExpenseSchema = new Schema({
   date: {
     type: Date,
     default: Date.now,
+  },
+  attachments: {
+    type: [String],
+    default: [],
+  },
+  thumbnailPath: {
+    type: String,
+    default: null,
   },
 }, { timestamps: true });
 

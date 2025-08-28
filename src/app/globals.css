@@ -122,3 +122,44 @@
     @apply bg-background text-foreground;
   }
 }
+
+.content-wrapper {
+  width: 100%;
+}
+
+@media (min-width: 430px) {
+  .content-wrapper {
+    width: 430px;
+    margin: 0 auto;
+  }
+}
+
+#app-body {
+  min-width: 430px;
+}
+
+@media (max-width: 430px) {
+  /*
+    This targets the file upload dropzone inside the expense form
+    to make it more compact on small screens.
+  */
+
+  /* Selects the dropzone container by its role attribute */
+  .tambah-belanja-form div[role="button"] {
+    padding: 0.5rem; /* 8px */
+    gap: 0.5rem; /* 8px */
+    min-height: 0; /* Allow it to shrink vertically */
+  }
+
+  /* Selects the text in the empty state of the dropzone */
+  .tambah-belanja-form div[role="button"] p {
+    font-size: 0.875rem; /* text-sm */
+    line-height: 1.25rem;
+  }
+
+  /* Makes the image previews smaller */
+  .tambah-belanja-form div[role="button"] .relative.w-16.h-16 {
+    width: 3rem; /* w-12 */
+    height: 3rem; /* h-12 */
+  }
+}

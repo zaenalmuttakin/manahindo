@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Store from '@/models/Store';
@@ -14,8 +13,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Search on the indexed lowercase field for better performance
     const stores = await Store.find({
-      name: { $regex: name, $options: 'i' } // Case-insensitive regex search
+      name_lowercase: { $regex: name.toLowerCase() }
     }).limit(10); // Limit to 10 results for autocomplete
 
     return NextResponse.json(stores);

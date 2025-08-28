@@ -16,13 +16,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import ExpenseForm from './ExpenseForm';
+import ExpenseForm from '@/components/form//expense/ExpenseForm';
+import Image from 'next/image';
+import ImageGallery from '@/components/gallery/ImageGallery';
+import { Trash2 } from 'lucide-react';
 
 // Interface for Store information
 interface StoreInfo {
@@ -41,11 +54,14 @@ interface ExpenseItem {
 // Main Expense interface, exported for use in page.tsx
 export interface Expense {
   _id: string;
+  oid?: string;
   store: string; // store ID
   items: ExpenseItem[];
   total: number;
   date: string;
   storeInfo: StoreInfo; // Populated by aggregation
+  attachments: string[];
+  thumbnailPath?: string;
 }
 
 // Props for the ExpenseTable component
@@ -59,18 +75,20 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
   const [searchTerm, setSearchTerm] = useState('');
   const [searchDate, setSearchDate] = useState<Date | undefined>();
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
-  const [abbreviations, setAbbreviations] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [groupsPerPage, setGroupsPerPage] = useState(5);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [confirmationText, setConfirmationText] = useState("");
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [currentGalleryImages, setCurrentGalleryImages] = useState<string[]>([]);
+  const [currentGalleryInitialIndex, setCurrentGalleryInitialIndex] = useState(0);
+  const [currentGalleryExpenseId, setCurrentGalleryExpenseId] = useState<string>('');
+  const [isThumbnailDeleteDialogOpen, setIsThumbnailDeleteDialogOpen] = useState(false);
+  const [thumbnailToDelete, setThumbnailToDelete] = useState<{ expenseId: string; imagePath: string; fileName: string } | null>(null);
 
-  // Fetch abbreviations on mount
-  useEffect(() => {
-    fetchAbbreviations();
-  }, []);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
 
   // Effect to filter expenses whenever the source data or filters change
   useEffect(() => {
@@ -98,18 +116,6 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
     setFilteredExpenses(filtered);
     setCurrentPage(1); // Reset to first page on filter change
   }, [searchTerm, searchDate, expenses]);
-
-  const fetchAbbreviations = async () => {
-    try {
-      const res = await fetch('/api/abbreviations');
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setAbbreviations(data);
-      }
-    } catch (error) {
-      console.error('Error fetching abbreviations:', error);
-    }
-  };
 
   const handleDeleteClick = (expense: Expense) => {
     setExpenseToDelete(expense);
@@ -155,16 +161,6 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
   };
   // ---------------------
 
-  const toTitleCase = (str: string) => {
-    if (!str) return '';
-    return str.split(' ').map(word => {
-      if (abbreviations.includes(word.toUpperCase())) {
-        return word.toUpperCase();
-      }
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    }).join(' ');
-  };
-
   const groupedByDate = filteredExpenses.reduce((acc: Map<string, Expense[]>, expense) => {
     const date = new Date(expense.date).toLocaleDateString('id-ID', {
       weekday: 'long',
@@ -196,6 +192,48 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
     (currentPage - 1) * safeGroupsPerPage,
     currentPage * safeGroupsPerPage
   );
+
+  const handleThumbnailClick = (expenseId: string, images: string[], initialIndex: number) => {
+    setCurrentGalleryExpenseId(expenseId);
+    setCurrentGalleryImages(images);
+    setCurrentGalleryInitialIndex(initialIndex);
+    setIsGalleryOpen(true);
+  };
+
+  const handleThumbnailDelete = (expenseId: string, imagePathToDelete: string) => {
+    const fileName = imagePathToDelete.split('/').pop();
+    setThumbnailToDelete({ expenseId, imagePath: imagePathToDelete, fileName: fileName || '' });
+    setIsThumbnailDeleteDialogOpen(true);
+  };
+
+  const handleConfirmThumbnailDelete = async () => {
+    if (!thumbnailToDelete) return;
+
+    const { expenseId, imagePath, fileName } = thumbnailToDelete;
+
+    try {
+      const res = await fetch(`/api/uploads?expenseId=${expenseId}&imagePath=${encodeURIComponent(imagePath)}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        toast.success(`Gambar ${fileName} berhasil dihapus!`);
+        onDataChange(); // Refresh data to reflect deletion
+      } else {
+        const errorData = await res.json();
+        toast.error(`Gagal menghapus gambar: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error('Terjadi kesalahan jaringan saat menghapus gambar.');
+    }
+  };
+
+  const handleGalleryImageDeleteSuccess = () => {
+    // This callback is from ImageGallery when an image is deleted from within the gallery
+    // It should trigger a data refresh in ExpenseTable
+    onDataChange();
+  };
 
   if (loading) {
     return <Card className="flex flex-col h-full items-center justify-center"><p>Memuat data...</p></Card>;
@@ -254,31 +292,57 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
                       />
                     ) : (
                       <div>
-                        <h3 className="text-lg font-medium mb-2">{toTitleCase(expense.storeInfo.name)}</h3>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Nama Barang</TableHead>
-                              <TableHead>Qty</TableHead>
-                              <TableHead>Harga</TableHead>
-                              <TableHead>Jumlah</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {expense.items.map((item, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{toTitleCase(item.name)}</TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{item.price.toLocaleString('id-ID')}</TableCell>
-                                <TableCell>{(item.quantity * item.price).toLocaleString('id-ID')}</TableCell>
+                        <h3 className="text-lg font-medium mb-2">{expense.storeInfo.name}</h3>
+                        <div className="relative w-full overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow><TableHead>Nama Barang</TableHead><TableHead>Qty</TableHead><TableHead>Harga</TableHead><TableHead>Jumlah</TableHead></TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {expense.items.map((item, index) => (
+                                <TableRow key={index}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{item.price.toLocaleString('id-ID')}</TableCell><TableCell>{(item.quantity * item.price).toLocaleString('id-ID')}</TableCell></TableRow>
+                              ))}
+                              <TableRow className="font-bold">
+                                <TableCell>
+                                  {expense.attachments && expense.attachments.length > 0 && (
+                                      <div className="flex flex-wrap justify-start gap-1 mt-2">
+                                        {expense.attachments.map((attachment, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="relative w-12 h-12 cursor-pointer group"
+                                          >
+                                            <Image
+                                              src={`${baseUrl}${attachment}`}
+                                              alt={`Attachment ${idx + 1}`}
+                                              layout="fill"
+                                              objectFit="cover"
+                                              className="rounded-md border border-gray-200 dark:border-gray-700"
+                                              onClick={() => handleThumbnailClick(expense._id, expense.attachments, idx)}
+                                            />
+                                            <Button
+                                              variant="destructive"
+                                              size="icon"
+                                              className="absolute top-0 right-0 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                              onClick={(e) => {
+                                                e.stopPropagation(); // Prevent opening gallery
+                                                handleThumbnailDelete(expense._id, attachment);
+                                              }}
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                </TableCell>
+                                <TableCell colSpan={2} className="text-right">Total</TableCell>
+                                <TableCell>
+                                  <div className="text-left">{expense.total.toLocaleString('id-ID')}</div>
+                                </TableCell>
                               </TableRow>
-                            ))}
-                            <TableRow className="font-bold">
-                              <TableCell colSpan={3} className="text-right">Total</TableCell>
-                              <TableCell>{expense.total.toLocaleString('id-ID')}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
+                            </TableBody>
+                          </Table>
+                        </div>
                         <div className="flex justify-end space-x-2 mt-2">
                           <Button variant="outline" size="sm" onClick={() => handleEditClick(expense._id)}>Edit</Button>
                           <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(expense)}>Hapus</Button>
@@ -293,7 +357,6 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
         </CardContent>
         <CardFooter className="flex items-center justify-between border-t pt-6">
           <div className="flex items-center space-x-2">
-            <p className="text-sm text-muted-foreground">Grup per halaman</p>
             <Input
               type="number"
               min="1"
@@ -336,10 +399,10 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
               <DialogTitle>Apakah Anda yakin?</DialogTitle>
               <DialogDescription>
                 Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data belanja dari toko{" "}
-                <span className="font-bold">{toTitleCase(expenseToDelete?.storeInfo.name || '')}</span> secara permanen.
+                <span className="font-bold">{expenseToDelete?.storeInfo.name || ''}</span> secara permanen.
                 <br />
                 Untuk mengonfirmasi, ketik{" "}
-                &ldquo;<span className="font-bold text-red-500">{toTitleCase(expenseToDelete?.storeInfo.name || '')}</span>&rdquo; di bawah ini.
+                &ldquo;<span className="font-bold text-red-500">{expenseToDelete?.storeInfo.name || ''}</span>&rdquo; di bawah ini.
               </DialogDescription>
             </DialogHeader>
             <Input
@@ -354,7 +417,7 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
               <Button
                 variant="destructive"
                 onClick={handleConfirmDelete}
-                disabled={confirmationText !== toTitleCase(expenseToDelete?.storeInfo.name || '')}
+                disabled={confirmationText !== (expenseToDelete?.storeInfo.name || '')}
               >
                 Hapus
               </Button>
@@ -362,6 +425,34 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
           </DialogContent>
         </DialogPortal>
       </Dialog>
+
+      {/* Thumbnail Delete Confirmation Dialog */}
+      <AlertDialog open={isThumbnailDeleteDialogOpen} onOpenChange={setIsThumbnailDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus Gambar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus gambar ini:
+              <span className="font-bold"> {thumbnailToDelete?.fileName}</span>?
+              Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmThumbnailDelete} className="bg-red-500 text-white hover:bg-red-600">Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Image Gallery Dialog */}
+      <ImageGallery
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        images={currentGalleryImages}
+        initialIndex={currentGalleryInitialIndex}
+        expenseId={currentGalleryExpenseId}
+        onImageDeleteSuccess={handleGalleryImageDeleteSuccess}
+      />
     </>
   );
 }

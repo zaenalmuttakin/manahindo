@@ -1,8 +1,8 @@
 'use client';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import ExpenseForm from "./ExpenseForm";
-import { Expense } from "./ExpenseTable";
+import ExpenseForm from "@/components/form/expense/ExpenseForm";
+import { Expense } from "@/components/table/expense/ExpenseTable";
 
 interface EditExpenseModalProps {
   isOpen: boolean;

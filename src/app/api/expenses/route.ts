@@ -3,7 +3,11 @@ import dbConnect from '@/lib/mongodb';
 import Expense from '@/models/Expense';
 import Store from '@/models/Store';
 import Product from '@/models/Product';
+import Abbreviation from '@/models/Abbreviation';
 import mongoose from 'mongoose';
+import { rm } from 'fs/promises';
+import path from 'path';
+import { formatDisplayName } from '@/lib/formatting';
 
 interface ItemInput {
   product: string; // Can be an ID or a new name
@@ -17,6 +21,112 @@ interface RequestBody {
   items: ItemInput[];
   date: Date;
   total: number;
+  attachments?: string[];
+  thumbnailPath?: string;
+}
+
+interface PopulatedItem {
+  product: mongoose.Types.ObjectId;
+  name: string;
+  quantity: number;
+  price: number;
+  productInfo?: {
+    _id: mongoose.Types.ObjectId;
+    store_id: mongoose.Types.ObjectId;
+    name: string;
+    name_lowercase: string;
+    price: number;
+    description?: string;
+  }
+}
+
+// Helper to get abbreviations
+let abbreviationsCache: string[] | null = null;
+async function getAbbreviations(): Promise<string[]> {
+  if (abbreviationsCache) {
+    return abbreviationsCache;
+  }
+  await dbConnect();
+  const abbreviations = await Abbreviation.find({}, 'name');
+  abbreviationsCache = abbreviations.map(a => a.name);
+  return abbreviationsCache;
+}
+
+async function findOrCreateStore(storeInput: string): Promise<mongoose.Types.ObjectId> {
+  await dbConnect();
+  if (mongoose.Types.ObjectId.isValid(storeInput)) {
+    const existingStore = await Store.findById(storeInput);
+    if (existingStore) {
+      return existingStore._id;
+    }
+  }
+
+  const lowerCaseName = storeInput.toLowerCase();
+  const existingStoreByName = await Store.findOne({ name_lowercase: lowerCaseName });
+
+  if (existingStoreByName) {
+    return existingStoreByName._id;
+  }
+
+  const abbreviations = await getAbbreviations();
+  const formattedName = formatDisplayName(storeInput, abbreviations);
+
+  const newStore = new Store({
+    name: formattedName,
+    name_lowercase: lowerCaseName,
+  });
+  const savedStore = await newStore.save();
+  return savedStore._id;
+}
+
+async function processExpenseItems(items: ItemInput[], storeId: mongoose.Types.ObjectId) {
+  const abbreviations = await getAbbreviations();
+  
+  return Promise.all(items.map(async (item) => {
+    let productId;
+    let existingProduct = null;
+
+    if (mongoose.Types.ObjectId.isValid(item.product)) {
+      existingProduct = await Product.findById(item.product);
+      if (existingProduct && !existingProduct.store_id.equals(storeId)) {
+        existingProduct = null;
+      }
+    }
+
+    const lowerCaseName = item.name.toLowerCase();
+
+    if (!existingProduct) {
+      existingProduct = await Product.findOne({
+        store_id: storeId,
+        name_lowercase: lowerCaseName
+      });
+    }
+
+    if (existingProduct) {
+      productId = existingProduct._id;
+      if (item.price !== existingProduct.price) {
+        existingProduct.price = item.price;
+        await existingProduct.save();
+      }
+    } else {
+      const formattedName = formatDisplayName(item.name, abbreviations);
+      const newProduct = new Product({
+        store_id: storeId,
+        name: formattedName,
+        name_lowercase: lowerCaseName,
+        price: item.price,
+      });
+      const savedProduct = await newProduct.save();
+      productId = savedProduct._id;
+    }
+    
+    return {
+      product: productId,
+      name: item.name, // Keep original name from form for consistency in this transaction
+      quantity: item.quantity,
+      price: item.price,
+    };
+  }));
 }
 
 export async function POST(req: NextRequest) {
@@ -24,67 +134,16 @@ export async function POST(req: NextRequest) {
   try {
     const body: RequestBody = await req.json();
 
-    // Step 1: Find or create the store
-    let storeId;
-    if (mongoose.Types.ObjectId.isValid(body.store)) {
-      const existingStore = await Store.findById(body.store);
-      if (existingStore) {
-        storeId = existingStore._id;
-      } else {
-        // This case is unlikely if frontend is correct, but handle it
-        const newStore = new Store({ name: body.store });
-        const savedStore = await newStore.save();
-        storeId = savedStore._id;
-      }
-    } else {
-      // It's a new store name
-      const newStore = new Store({ name: body.store });
-      const savedStore = await newStore.save();
-      storeId = savedStore._id;
-    }
+    const storeId = await findOrCreateStore(body.store);
+    const processedItems = await processExpenseItems(body.items, storeId);
 
-    // Step 2: Process items to find or create products
-    const processedItems = await Promise.all(body.items.map(async (item) => {
-      let productId;
-      if (mongoose.Types.ObjectId.isValid(item.product)) {
-        const existingProduct = await Product.findById(item.product);
-        if (existingProduct && existingProduct.store_id.equals(storeId)) {
-          productId = existingProduct._id;
-        } else {
-          // Product ID is invalid or doesn't belong to this store, create new
-          const newProduct = new Product({
-            store_id: storeId,
-            name: item.name,
-            price: item.price,
-          });
-          const savedProduct = await newProduct.save();
-          productId = savedProduct._id;
-        }
-      } else {
-        // It's a new product name
-        const newProduct = new Product({
-          store_id: storeId,
-          name: item.name,
-          price: item.price,
-        });
-        const savedProduct = await newProduct.save();
-        productId = savedProduct._id;
-      }
-      
-      return {
-        product: productId,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      };
-    }));
-
-    // Step 3: Create the new expense
     const newExpense = new Expense({
       store: storeId,
       items: processedItems,
       date: body.date,
       total: body.total,
+      attachments: body.attachments || [],
+      thumbnailPath: body.thumbnailPath || null,
     });
 
     await newExpense.save();
@@ -125,7 +184,6 @@ export async function GET(req: NextRequest) {
       },
       {
         $addFields: {
-          'storeInfo.name': '$storeInfo.name',
           items: {
             $map: {
               input: '$items',
@@ -150,16 +208,20 @@ export async function GET(req: NextRequest) {
         }
       },
       {
+        $project: { productDetails: 0 } // Remove the large productDetails array
+      },
+      {
         $sort: { date: -1, createdAt: -1 }
       }
     ];
 
     if (search) {
+      const searchRegex = { $regex: search, $options: 'i' };
       pipeline.unshift({
         $match: {
           $or: [
-            { 'storeInfo.name': { $regex: search, $options: 'i' } },
-            { 'items.name': { $regex: search, $options: 'i' } }
+            { 'storeInfo.name': searchRegex },
+            { 'items.name': searchRegex }
           ]
         }
       });
@@ -167,7 +229,21 @@ export async function GET(req: NextRequest) {
     
     const expenses = await Expense.aggregate(pipeline);
 
-    return NextResponse.json(expenses);
+    // Post-process to format names for display
+    const abbreviations = await getAbbreviations();
+    const formattedExpenses = expenses.map(expense => ({
+      ...expense,
+      storeInfo: {
+        ...expense.storeInfo,
+        name: formatDisplayName(expense.storeInfo.name, abbreviations),
+      },
+      items: expense.items.map((item: PopulatedItem) => ({
+        ...item,
+        name: item.productInfo ? formatDisplayName(item.productInfo.name, abbreviations) : item.name,
+      }))
+    }));
+
+    return NextResponse.json(formattedExpenses);
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
@@ -189,56 +265,8 @@ export async function PUT(req: NextRequest) {
 
     const body: RequestBody = await req.json();
 
-    // Step 1: Find or create the store
-    let storeId;
-    if (mongoose.Types.ObjectId.isValid(body.store)) {
-      const existingStore = await Store.findById(body.store);
-      if (existingStore) {
-        storeId = existingStore._id;
-      } else {
-        const newStore = new Store({ name: body.store });
-        const savedStore = await newStore.save();
-        storeId = savedStore._id;
-      }
-    } else {
-      const newStore = new Store({ name: body.store });
-      const savedStore = await newStore.save();
-      storeId = savedStore._id;
-    }
-
-    // Step 2: Process items to find or create products
-    const processedItems = await Promise.all(body.items.map(async (item) => {
-      let productId;
-      if (mongoose.Types.ObjectId.isValid(item.product)) {
-        const existingProduct = await Product.findById(item.product);
-        if (existingProduct && existingProduct.store_id.equals(storeId)) {
-          productId = existingProduct._id;
-        } else {
-          const newProduct = new Product({
-            store_id: storeId,
-            name: item.name,
-            price: item.price,
-          });
-          const savedProduct = await newProduct.save();
-          productId = savedProduct._id;
-        }
-      } else {
-        const newProduct = new Product({
-          store_id: storeId,
-          name: item.name,
-          price: item.price,
-        });
-        const savedProduct = await newProduct.save();
-        productId = savedProduct._id;
-      }
-      
-      return {
-        product: productId,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      };
-    }));
+    const storeId = await findOrCreateStore(body.store);
+    const processedItems = await processExpenseItems(body.items, storeId);
 
     const updatedExpense = await Expense.findByIdAndUpdate(
       id,
@@ -247,6 +275,8 @@ export async function PUT(req: NextRequest) {
         items: processedItems,
         date: body.date,
         total: body.total,
+        attachments: body.attachments || [],
+        thumbnailPath: body.thumbnailPath || null,
       },
       { new: true }
     );
@@ -276,11 +306,22 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid Expense ID' }, { status: 400 });
     }
 
-    const deletedExpense = await Expense.findByIdAndDelete(id);
+    const expense = await Expense.findById(id);
 
-    if (!deletedExpense) {
+    if (!expense) {
       return NextResponse.json({ error: 'Expense not found' }, { status: 404 });
     }
+
+    if (expense._id) {
+      try {
+        const dirPath = path.join(process.cwd(), 'public', 'uploads', 'expenses', expense._id.toString());
+        await rm(dirPath, { recursive: true, force: true });
+      } catch (error) {
+        console.error(`Failed to delete directory for expense ${id}:`, error);
+      }
+    }
+
+    await Expense.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'Expense deleted successfully' });
   } catch (error) {

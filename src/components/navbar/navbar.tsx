@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from 'react';
 import Link from 'next/link';
@@ -25,6 +25,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
+import Logo from '@/components/ui/logo';
 
 const components: { title: string; href: string; description: string }[] = [
   {
@@ -85,6 +86,8 @@ const ListItem = React.forwardRef<
   );
 });
 ListItem.displayName = 'ListItem';
+
+
 
 const ThemeToggle = () => {
   const { setTheme, theme } = useTheme();
@@ -212,8 +215,7 @@ export default function Navbar() {
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center space-x-4">
           <Link href="/" className="flex items-center space-x-2">
-            <Code className="h-6 w-6" />
-            <span className="font-bold">AppName</span>
+            <Logo />
           </Link>
         </div>
 

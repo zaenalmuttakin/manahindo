@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -33,8 +33,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import ExpenseForm from '@/components/form//expense/ExpenseForm';
-import Image from 'next/image';
+import SafeImage from '@/components/ui/safe-image';
 import ImageGallery from '@/components/gallery/ImageGallery';
+import PhotoStack from '@/components/ui/photo-stack';
 import { Trash2 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -375,35 +376,45 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
                               <TableRow className="font-bold">
                                 <TableCell>
                                   {expense.attachments && expense.attachments.length > 0 && (
-                                      <div className="flex flex-wrap justify-start gap-1 mt-2">
-                                        {expense.attachments.map((attachment, idx) => (
-                                          <div
-                                            key={idx}
-                                            className="relative w-12 h-12 cursor-pointer group"
-                                          >
-                                            <Image
-                                              src={`${baseUrl}${attachment}`}
-                                              alt={`Attachment ${idx + 1}`}
-                                              layout="fill"
-                                              objectFit="cover"
-                                              className="rounded-md border border-gray-200 dark:border-gray-700"
-                                              onClick={() => handleThumbnailClick(expense._id, expense.attachments, idx)}
-                                            />
-                                            <Button
-                                              variant="destructive"
-                                              size="icon"
-                                              className="absolute top-0 right-0 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                              onClick={(e) => {
-                                                e.stopPropagation(); // Prevent opening gallery
-                                                handleThumbnailDelete(expense._id, attachment);
-                                              }}
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        ))}
+                                    <div className="mt-2 flex items-center">
+                                      {/* --- Desktop View (> 500px) --- */}
+                                      <div className="max-[500px]:hidden">
+                                        <div className="flex flex-wrap justify-start gap-1">
+                                          {expense.attachments.map((attachment, idx) => (
+                                            <div key={idx} className="relative w-12 h-12 cursor-pointer group">
+                                              <SafeImage
+                                                src={`${baseUrl}${attachment}`}
+                                                alt={`Attachment ${idx + 1}`}
+                                                layout="fill"
+                                                objectFit="cover"
+                                                className="rounded-md border"
+                                                onClick={() => handleThumbnailClick(expense._id, expense.attachments, idx)}
+                                              />
+                                              <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleThumbnailDelete(expense._id, attachment);
+                                                }}
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
-                                    )}
+
+                                      {/* --- Mobile View (<= 500px) --- */}
+                                      <div className="hidden max-[500px]:block">
+                                        <PhotoStack
+                                          images={expense.attachments}
+                                          onClick={() => handleThumbnailClick(expense._id, expense.attachments, 0)}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
                                 </TableCell>
                                 <TableCell colSpan={2} className="text-right">Total</TableCell>
                                 <TableCell>

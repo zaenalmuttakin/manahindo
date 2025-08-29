@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import debounce from 'lodash.debounce';
 import { Expense } from "@/components/table/expense/ExpenseTable";
 import { useDropzone, FileRejection, FileError } from 'react-dropzone';
-import Image from 'next/image';
+import SafeImage from '@/components/ui/safe-image';
 import { motion, AnimatePresence } from "framer-motion";
 
 // Data types from backend models
@@ -580,7 +580,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                   <>
                     {attachments.map((path, index) => (
                       <div key={`existing-${index}`} className="relative w-14 h-14 border rounded-md overflow-hidden flex-shrink-0">
-                        <Image
+                        <SafeImage
                           src={path}
                           alt={`Existing attachment ${index + 1}`}
                           layout="fill"
@@ -599,7 +599,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                     {newlySelectedFiles.map((file, index) => (
                       <div key={`new-${index}`} className="relative w-14 h-14 border rounded-md overflow-hidden flex-shrink-0">
                         {objectUrls[file.name] && (
-                          <Image
+                          <SafeImage
                             src={objectUrls[file.name]}
                             alt={file.name}
                             layout="fill"

@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
+import SafeImage from '@/components/ui/safe-image';
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -102,7 +102,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 
         <div className="relative flex-1 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
           {images.length > 0 && currentImage ? (
-            <Image
+            <SafeImage
               src={`${baseUrl}${currentImage}`}
               alt={`Gallery image ${currentIndex + 1}`}
               layout="fill"

@@ -15,6 +15,7 @@ import debounce from 'lodash.debounce';
 import { Expense } from "@/components/table/expense/ExpenseTable";
 import { useDropzone, FileRejection, FileError } from 'react-dropzone';
 import Image from 'next/image';
+import { motion, AnimatePresence } from "framer-motion";
 
 // Data types from backend models
 interface IStore {
@@ -163,7 +164,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
 
     const totalFilesCount = newlySelectedFiles.length + attachments.length;
     const newFilesToAdd = acceptedFiles.filter(file => {
-      const maxFileSize = 4 * 1024 * 1024; // 4MB
+      const maxFileSize = 2 * 1024 * 1024; // 4MB
       const allowedTypes = ['image/jpeg', 'image/png'];
 
       if (!allowedTypes.includes(file.type)) {
@@ -177,11 +178,11 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
       return true;
     });
 
-    if (totalFilesCount + newFilesToAdd.length > 5) {
-      setFileUploadError('Maximum 5 files allowed. Some files were not added.');
+    if (totalFilesCount + newFilesToAdd.length > 4) {
+      setFileUploadError('Maximum 4 files allowed. Some files were not added.');
       setNewlySelectedFiles(prevFiles => [
         ...prevFiles,
-        ...newFilesToAdd.slice(0, 5 - totalFilesCount),
+        ...newFilesToAdd.slice(0, 4 - totalFilesCount),
       ]);
     } else {
       setNewlySelectedFiles(prevFiles => [...prevFiles, ...newFilesToAdd]);
@@ -202,10 +203,10 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
       'image/jpeg': [],
       'image/png': [],
     },
-    maxSize: 4 * 1024 * 1024, // 4MB
-    maxFiles: 5,
-    noClick: newlySelectedFiles.length + attachments.length >= 5,
-    noKeyboard: newlySelectedFiles.length + attachments.length >= 5,
+    maxSize: 2 * 1024 * 1024, // 2MB
+    maxFiles: 4,
+    noClick: newlySelectedFiles.length + attachments.length >= 4,
+    noKeyboard: newlySelectedFiles.length + attachments.length >= 4,
   });
 
   const removeNewlySelectedFile = (fileToRemove: File) => {
@@ -450,10 +451,20 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
 
           <div className="flex flex-col gap-2">
             <Label>Daftar Belanja</Label>
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex space-x-2 items-end">
-                <div className="grid grid-cols-5 gap-2 w-full">
-                  <div className="col-span-2">
+            <AnimatePresence>
+              {fields.map((field, index) => (
+                <motion.div
+                  key={field.id}
+                  className="flex space-x-2 items-start"
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 50, transition: { duration: 0.2 } }}
+                  transition={{
+                    opacity: { duration: 0.2, ease: "linear" },
+                    x: { duration: 0.3, ease: "easeInOut", delay: 0.2 }
+                  }}
+                >
+                  <div className="flex w-full flex-col gap-2">
                     <Controller
                       name={`items.${index}.product`}
                       control={control}
@@ -481,57 +492,55 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                         />
                       )}
                     />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Controller
+                        control={control}
+                        name={`items.${index}.quantity`}
+                        rules={{ required: "Qty harus diisi", min: { value: 0, message: "Qty tidak boleh negatif" } }}
+                        render={({ field }) => (
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            {...field}
+                            onChange={(e) => {
+                              const numValue = e.target.valueAsNumber;
+                              if (isNaN(numValue)) {
+                                field.onChange(undefined);
+                              } else {
+                                field.onChange(Math.max(0, numValue));
+                              }
+                            }}
+                            value={field.value ?? ""}
+                          />
+                        )}
+                      />
+                      <Controller
+                        control={control}
+                        name={`items.${index}.price`}
+                        rules={{ required: "Harga harus diisi" }}
+                        render={({ field }) => (
+                          <Input
+                            type="text"
+                            placeholder="Harga"
+                            inputMode="numeric"
+                            value={field.value === undefined ? "" : new Intl.NumberFormat("id-ID").format(field.value)}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/\D/g, "");
+                              field.onChange(value === "" ? undefined : Number(value));
+                            }}
+                          />
+                        )}
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-1">
-                    <Controller
-                      control={control}
-                      name={`items.${index}.quantity`}
-                      rules={{ required: "Qty harus diisi", min: { value: 0, message: "Qty tidak boleh negatif" } }}
-                      render={({ field }) => (
-                        <Input
-                          type="number"
-                          placeholder="Qty"
-                          {...field}
-                          onChange={(e) => {
-                            const numValue = e.target.valueAsNumber;
-                            if (isNaN(numValue)) {
-                              field.onChange(undefined);
-                            } else {
-                              field.onChange(Math.max(0, numValue));
-                            }
-                          }}
-                          value={field.value ?? ""}
-                        />
-                      )}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Controller
-                      control={control}
-                      name={`items.${index}.price`}
-                      rules={{ required: "Harga harus diisi" }}
-                      render={({ field }) => (
-                        <Input
-                          type="text"
-                          placeholder="Harga"
-                          inputMode="numeric"
-                          value={field.value === undefined ? "" : new Intl.NumberFormat("id-ID").format(field.value)}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, "");
-                            field.onChange(value === "" ? undefined : Number(value));
-                          }}
-                        />
-                      )}
-                    />
-                  </div>
-                </div>
-                {fields.length > 1 && (
-                  <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+                  {fields.length > 1 && (
+                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="transition-all hover:brightness-110">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
             <Button
               type="button"
               variant="outline"
@@ -546,14 +555,14 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
             </Button>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="file-upload">Upload Bukti Pembelian (Max 5 files, 4MB/file, JPEG/PNG)</Label>
+              <Label htmlFor="file-upload">Upload Bukti Pembelian (Max 4 files, 4MB/file, JPEG/PNG)</Label>
               <div
                 {...getRootProps()}
                 className={cn(
                   "flex flex-wrap items-center justify-center gap-2 p-2 min-h-[60px] border border-gray-300 rounded-md cursor-pointer transition-colors",
                   "hover:border-gray-400",
                   isDragActive ? "border-blue-500 bg-blue-50" : "",
-                  totalCurrentFiles >= 5 ? "cursor-not-allowed opacity-70" : ""
+                  totalCurrentFiles >= 4 ? "cursor-not-allowed opacity-70" : ""
                 )}
                 //style={{ minWidth: 'calc(5 * (50px + 8px) + 16px)' }} // 10 thumbnails (w-16=64px) + gap-2 (8px) + padding (16px)
               >
@@ -570,7 +579,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                 ) : (
                   <>
                     {attachments.map((path, index) => (
-                      <div key={`existing-${index}`} className="relative w-16 h-16 border rounded-md overflow-hidden flex-shrink-0">
+                      <div key={`existing-${index}`} className="relative w-14 h-14 border rounded-md overflow-hidden flex-shrink-0">
                         <Image
                           src={path}
                           alt={`Existing attachment ${index + 1}`}
@@ -580,7 +589,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                         />
                         <button
                           onClick={(e) => { e.stopPropagation(); removeExistingAttachment(path); }}
-                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs"
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs transition-all hover:brightness-110"
                           aria-label={`Remove existing attachment ${index + 1}`}
                         >
                           <XCircle size={12} />
@@ -588,7 +597,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                       </div>
                     ))}
                     {newlySelectedFiles.map((file, index) => (
-                      <div key={`new-${index}`} className="relative w-16 h-16 border rounded-md overflow-hidden flex-shrink-0">
+                      <div key={`new-${index}`} className="relative w-14 h-14 border rounded-md overflow-hidden flex-shrink-0">
                         {objectUrls[file.name] && (
                           <Image
                             src={objectUrls[file.name]}
@@ -600,17 +609,17 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); removeNewlySelectedFile(file); }}
-                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs"
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs transition-all hover:brightness-110"
                           aria-label={`Remove ${file.name}`}
                         >
                           <XCircle size={12} />
                         </button>
                       </div>
                     ))}
-                    {totalCurrentFiles < 5 && (
+                    {totalCurrentFiles < 4 && (
                       <div className="flex flex-col items-center text-center text-muted-foreground ml-2">
                         <UploadCloud className="h-6 w-6 mb-1" />
-                        <p className="text-sm">MAX 5</p>
+                        <p className="text-sm">MAX 4</p>
                       </div>
                     )}
                   </>

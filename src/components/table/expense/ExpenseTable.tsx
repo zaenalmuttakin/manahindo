@@ -36,6 +36,7 @@ import ExpenseForm from '@/components/form//expense/ExpenseForm';
 import Image from 'next/image';
 import ImageGallery from '@/components/gallery/ImageGallery';
 import { Trash2 } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Interface for Store information
 interface StoreInfo {
@@ -71,12 +72,81 @@ interface ExpenseTableProps {
   onDataChange: () => void;
 }
 
+const ExpenseTableSkeleton = () => {
+  return (
+    <Card className="flex flex-col h-full">
+      <CardHeader>
+        <Skeleton className="h-8 w-1/4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-1/6" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-1/6" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-y-auto">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="mb-8">
+            <Skeleton className="h-7 w-1/3 mb-4" />
+            <div className="mb-6 border rounded-lg p-4">
+              <Skeleton className="h-6 w-1/4 mb-2" />
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead><Skeleton className="h-5 w-3/4" /></TableHead>
+                    <TableHead><Skeleton className="h-5 w-1/2" /></TableHead>
+                    <TableHead><Skeleton className="h-5 w-1/2" /></TableHead>
+                    <TableHead><Skeleton className="h-5 w-1/2" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(3)].map((_, j) => (
+                    <TableRow key={j}>
+                      <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                      <TableCell><Skeleton className="h-12 w-full" /></TableCell>
+                      <TableCell colSpan={2} className="text-right"><Skeleton className="h-5 w-1/4" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              <div className="flex justify-end space-x-2 mt-2">
+                <Skeleton className="h-9 w-16" />
+                <Skeleton className="h-9 w-16" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+      <CardFooter className="flex items-center justify-between border-t pt-6">
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-8 w-[70px]" />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-8 w-8" />
+          <Skeleton className="h-8 w-8" />
+        </div>
+      </CardFooter>
+    </Card>
+  );
+};
+
 export default function ExpenseTable({ expenses, loading, onDataChange }: ExpenseTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchDate, setSearchDate] = useState<Date | undefined>();
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [groupsPerPage, setGroupsPerPage] = useState(5);
+  const [groupsPerPage, setGroupsPerPage] = useState(2);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
@@ -236,7 +306,7 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
   };
 
   if (loading) {
-    return <Card className="flex flex-col h-full items-center justify-center"><p>Memuat data...</p></Card>;
+    return <ExpenseTableSkeleton />;
   }
 
   return (

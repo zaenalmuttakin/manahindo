@@ -436,7 +436,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                     <PopoverTrigger asChild>
                       <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(field.value, "dd MMMM yyyy") : <span>Pilih tanggal</span>}
+                        {field.value ? format(field.value, "d MMM yy") : <span>Pilih tanggal</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -555,7 +555,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
                   isDragActive ? "border-blue-500 bg-blue-50" : "",
                   totalCurrentFiles >= 5 ? "cursor-not-allowed opacity-70" : ""
                 )}
-                style={{ minWidth: 'calc(5 * (50px + 8px) + 16px)' }} // 10 thumbnails (w-16=64px) + gap-2 (8px) + padding (16px)
+                //style={{ minWidth: 'calc(5 * (50px + 8px) + 16px)' }} // 10 thumbnails (w-16=64px) + gap-2 (8px) + padding (16px)
               >
                 <Input {...getInputProps()} id="file-upload" className="hidden" />
                 {totalCurrentFiles === 0 ? (

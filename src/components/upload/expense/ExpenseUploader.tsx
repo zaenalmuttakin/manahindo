@@ -1,17 +1,23 @@
 'use client';
 
-import React, { useCallback, useState, useEffect } from 'react';
-import { useDropzone, FileRejection, FileError } from 'react-dropzone';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useDropzone, FileRejection } from 'react-dropzone';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Image from 'next/image';
 import { XCircle, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
+
+interface DisplayableFile {
+  id: string;
+  file?: File;
+  preview: string;
+}
 
 interface ExpenseUploaderProps {
-  onFilesChange: (files: File[]) => void; // Callback to pass selected File objects to parent
-  existingAttachments: string[]; // Paths of already uploaded files
-  onExistingAttachmentRemove: (path: string) => void; // Callback for removing existing attachments
+  onFilesChange: (files: File[]) => void;
+  existingAttachments: string[];
+  onExistingAttachmentRemove: (path: string) => void;
 }
 
 const ExpenseUploader: React.FC<ExpenseUploaderProps> = ({
@@ -19,69 +25,83 @@ const ExpenseUploader: React.FC<ExpenseUploaderProps> = ({
   existingAttachments,
   onExistingAttachmentRemove,
 }) => {
-  const [newlySelectedFiles, setNewlySelectedFiles] = useState<File[]>([]);
+  const [displayFiles, setDisplayFiles] = useState<DisplayableFile[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Pass newly selected files to parent whenever they change
+  // Use a ref to keep track of created blob URLs to prevent premature revocation
+  const createdUrlsRef = useRef<string[]>([]);
+
+  // Synchronize existing attachments from props
   useEffect(() => {
-    onFilesChange(newlySelectedFiles);
-  }, [newlySelectedFiles, onFilesChange]);
+    setDisplayFiles(currentFiles => {
+      const newFiles = currentFiles.filter(df => df.file);
+      const existingAsDisplayable = existingAttachments.map(path => ({
+        id: path,
+        preview: path,
+      }));
+      return [...existingAsDisplayable, ...newFiles];
+    });
+  }, [existingAttachments]);
+
+  // Report file changes to the parent form
+  useEffect(() => {
+    const newFiles = displayFiles.map(df => df.file).filter((f): f is File => !!f);
+    onFilesChange(newFiles);
+  }, [displayFiles, onFilesChange]);
+
+  // Cleanup effect for blob URLs
+  useEffect(() => {
+    // This runs only when the component unmounts
+    return () => {
+      createdUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
-    setError(null); // Clear previous errors
+    setError(null);
 
-    const totalFilesCount = newlySelectedFiles.length + existingAttachments.length;
-    const newFilesToAdd = acceptedFiles.filter(file => {
-      const maxFileSize = 4 * 1024 * 1024; // 4MB
-      const allowedTypes = ['image/jpeg', 'image/png'];
+    if (displayFiles.length + acceptedFiles.length > 5) {
+      setError('Maximum 5 files allowed.');
+      return;
+    }
 
-      if (!allowedTypes.includes(file.type)) {
-        setError(`File type not allowed: ${file.name}. Only JPEG and PNG are allowed.`);
-        return false;
-      }
-      if (file.size > maxFileSize) {
-        setError(`File size exceeds 4MB for ${file.name}.`);
-        return false;
-      }
-      return true;
+    const newDisplayFiles = acceptedFiles.map(file => {
+      const url = URL.createObjectURL(file);
+      createdUrlsRef.current.push(url); // Track the new URL
+      return {
+        id: `${file.name}-${file.lastModified}`,
+        file: file,
+        preview: url,
+      };
     });
 
-    if (totalFilesCount + newFilesToAdd.length > 5) {
-      setError('Maximum 5 files allowed. Some files were not added.');
-      setNewlySelectedFiles(prevFiles => [
-        ...prevFiles,
-        ...newFilesToAdd.slice(0, 10 - totalFilesCount),
-      ]);
-    } else {
-      setNewlySelectedFiles(prevFiles => [...prevFiles, ...newFilesToAdd]);
-    }
+    setDisplayFiles(current => [...current, ...newDisplayFiles]);
 
     if (fileRejections.length > 0) {
-      fileRejections.forEach(({ file, errors }) => {
-        errors.forEach((err: FileError) => {
-          setError(`${file.name}: ${err.message}`);
-        });
-      });
+      setError(`${fileRejections[0].file.name}: ${fileRejections[0].errors[0].message}`);
     }
-  }, [newlySelectedFiles, existingAttachments]);
+  }, [displayFiles]);
+
+  const removeFile = (id: string) => {
+    const fileToRemove = displayFiles.find(f => f.id === id);
+    if (!fileToRemove) return;
+
+    if (fileToRemove.file) {
+      // This is a new file, revoke its URL and remove from tracking
+      URL.revokeObjectURL(fileToRemove.preview);
+      createdUrlsRef.current = createdUrlsRef.current.filter(url => url !== fileToRemove.preview);
+      setDisplayFiles(current => current.filter(f => f.id !== id));
+    } else {
+      // This is an existing attachment, call the parent handler
+      onExistingAttachmentRemove(id);
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/jpeg': [],
-      'image/png': [],
-    },
+    accept: { 'image/jpeg': [], 'image/png': [] },
     maxSize: 4 * 1024 * 1024, // 4MB
-    maxFiles: 5, // This limits selection, but we also handle it manually in onDrop for better error messages
-    noClick: newlySelectedFiles.length + existingAttachments.length >= 5, // Disable click if max files reached
-    noKeyboard: newlySelectedFiles.length + existingAttachments.length >= 5, // Disable keyboard if max files reached
   });
-
-  const removeNewlySelectedFile = (fileToRemove: File) => {
-    setNewlySelectedFiles(prevFiles => prevFiles.filter(file => file !== fileToRemove));
-  };
-
-  const totalCurrentFiles = newlySelectedFiles.length + existingAttachments.length;
 
   return (
     <div className="space-y-4">
@@ -95,60 +115,38 @@ const ExpenseUploader: React.FC<ExpenseUploaderProps> = ({
           "min-h-[60px] border border-gray-300 rounded-md cursor-pointer transition-colors",
           "hover:border-gray-400",
           isDragActive ? "border-blue-500 bg-blue-50" : "",
-          totalCurrentFiles >= 5 ? "cursor-not-allowed opacity-70" : "",
+          displayFiles.length >= 5 ? "cursor-not-allowed opacity-70" : "",
           "flex flex-wrap items-center justify-center p-2 gap-2"
         )}
       >
         <Input {...getInputProps()} id="file-upload" className="hidden" />
-        {totalCurrentFiles === 0 ? (
+        {displayFiles.length === 0 ? (
           <div className="flex flex-col items-center text-center text-muted-foreground">
             <UploadCloud className="h-6 w-6 mb-1" />
-            {isDragActive ? (
-              <p>Drop the files here ...</p>
-            ) : (
-              <p className="text-xs sm:text-sm">Drag & drop or click to upload</p>
-            )}
+            {isDragActive ? <p>Drop files here...</p> : <p className="text-xs sm:text-sm">Drag & drop or click</p>}
           </div>
         ) : (
           <>
-            {existingAttachments.map((path, index) => (
-              <div key={`existing-${index}`} className="relative h-16 basis-16 flex-grow border rounded-md overflow-hidden">
+            {displayFiles.map(df => (
+              <div key={df.id} className="relative h-16 w-16 sm:h-20 sm:w-20 border rounded-md overflow-hidden">
                 <Image
-                  src={path}
-                  alt={`Existing attachment ${index + 1}`}
-                  layout="fill"
-                  objectFit="cover"
+                  src={df.preview}
+                  alt={df.file?.name || 'existing attachment'}
+                  fill
+                  style={{ objectFit: 'cover' }} // Modern way for next/image
                   className="rounded-md"
                 />
                 <button
-                  onClick={(e) => { e.stopPropagation(); onExistingAttachmentRemove(path); }}
+                  onClick={(e) => { e.stopPropagation(); removeFile(df.id); }}
                   className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs"
-                  aria-label={`Remove existing attachment ${index + 1}`}
+                  aria-label={`Remove ${df.file?.name || 'attachment'}`}
                 >
-                  <XCircle size={12} />
+                  <XCircle size={16} />
                 </button>
               </div>
             ))}
-            {newlySelectedFiles.map((file, index) => (
-              <div key={`new-${index}`} className="relative h-16 basis-16 flex-grow border rounded-md overflow-hidden">
-                <Image
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  layout="fill"
-                  objectFit="cover"
-                  className="rounded-md"
-                />
-                <button
-                  onClick={(e) => { e.stopPropagation(); removeNewlySelectedFile(file); }}
-                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 text-xs"
-                  aria-label={`Remove ${file.name}`}
-                >
-                  <XCircle size={12} />
-                </button>
-              </div>
-            ))}
-            {totalCurrentFiles < 5 && (
-              <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-16 basis-16 flex-grow border-2 border-dashed rounded-md p-1">
+            {displayFiles.length < 5 && (
+              <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-16 w-16 sm:h-20 sm:w-20 border-2 border-dashed rounded-md p-1">
                 <UploadCloud className="h-6 w-6 mb-1" />
                 <p className="text-xs text-center">Add more</p>
               </div>
@@ -156,7 +154,6 @@ const ExpenseUploader: React.FC<ExpenseUploaderProps> = ({
           </>
         )}
       </div>
-
       {error && <p className="text-red-500 text-sm">{error}</p>}
     </div>
   );

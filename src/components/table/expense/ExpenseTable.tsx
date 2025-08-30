@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
@@ -385,8 +385,9 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
                                               <SafeImage
                                                 src={`${baseUrl}${attachment}`}
                                                 alt={`Attachment ${idx + 1}`}
-                                                layout="fill"
-                                                objectFit="cover"
+                                                fill
+                                                sizes="5vw"
+                                                style={{ objectFit: "cover" }}
                                                 className="rounded-md border"
                                                 onClick={() => handleThumbnailClick(expense._id, expense.attachments, idx)}
                                               />
@@ -479,11 +480,9 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
             <DialogHeader>
               <DialogTitle>Apakah Anda yakin?</DialogTitle>
               <DialogDescription>
-                Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data belanja dari toko{" "}
-                <span className="font-bold">{expenseToDelete?.storeInfo.name || ''}</span> secara permanen.
+                Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data belanja dari toko <span className="font-bold">{expenseToDelete?.storeInfo.name || ''}</span> secara permanen.
                 <br />
-                Untuk mengonfirmasi, ketik{" "}
-                &ldquo;<span className="font-bold text-red-500">{expenseToDelete?.storeInfo.name || ''}</span>&rdquo; di bawah ini.
+                Untuk mengonfirmasi, ketik &ldquo;<span className="font-bold text-red-500">{expenseToDelete?.storeInfo.name || ''}</span>&rdquo; di bawah ini.
               </DialogDescription>
             </DialogHeader>
             <Input

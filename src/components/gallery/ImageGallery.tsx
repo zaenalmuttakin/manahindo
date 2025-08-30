@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -104,10 +106,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
           {images.length > 0 && currentImage ? (
             <SafeImage
               src={`${baseUrl}${currentImage}`}
-              alt={`Gallery image ${currentIndex + 1}`}
-              layout="fill"
-              objectFit="contain"
+              alt={`View of expense attachment ${currentIndex + 1}`}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+              style={{ objectFit: "contain" }}
               className="rounded-md"
+              priority
             />
           ) : (
             <p className="text-muted-foreground">No images to display.</p>

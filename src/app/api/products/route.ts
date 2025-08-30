@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Product from '@/models/Product';
+import ExpenseProduct from '@/models/ExpenseProduct';
 import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Search on the indexed lowercase field for better performance
-    const products = await Product.find({
+    const products = await ExpenseProduct.find({
       store_id: new mongoose.Types.ObjectId(storeId),
       name_lowercase: { $regex: name.toLowerCase() }
     }).limit(10);

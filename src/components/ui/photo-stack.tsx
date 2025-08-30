@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import SafeImage from '@/components/ui/safe-image';
 import { cn } from '@/lib/utils';
@@ -36,8 +36,9 @@ const PhotoStack: React.FC<PhotoStackProps> = ({ images, onClick, className }) =
           <SafeImage
             src={`${baseUrl}${src}`}
             alt={`Attachment ${index + 1}`}
-            layout="fill"
-            objectFit="cover"
+            fill
+            sizes="10vw"
+            style={{ objectFit: "cover" }}
             className="transition-transform duration-300 ease-in-out group-hover:scale-110"
           />
         </div>

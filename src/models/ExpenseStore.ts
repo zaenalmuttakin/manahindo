@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IStore extends Document {
+export interface IExpenseStore extends Document {
   name: string;
   name_lowercase: string;
   address?: string;
@@ -8,7 +8,7 @@ export interface IStore extends Document {
   maps_link?: string;
 }
 
-const StoreSchema: Schema = new Schema({
+const ExpenseStoreSchema: Schema = new Schema({
   name: { type: String, required: true },
   name_lowercase: { type: String, required: true, unique: true, index: true },
   address: { type: String },
@@ -16,4 +16,4 @@ const StoreSchema: Schema = new Schema({
   maps_link: { type: String },
 }, { timestamps: true });
 
-export default mongoose.models.Store || mongoose.model<IStore>('Store', StoreSchema);
+export default mongoose.models.ExpenseStore || mongoose.model<IExpenseStore>('ExpenseStore', ExpenseStoreSchema, 'expense_stores');

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Expense from '@/models/Expense';
-import Store from '@/models/Store';
-import Product from '@/models/Product';
+import ExpenseStore from '@/models/ExpenseStore';
+import ExpenseProduct from '@/models/ExpenseProduct';
 import Abbreviation from '@/models/Abbreviation';
 import mongoose from 'mongoose';
 import { rm } from 'fs/promises';
@@ -55,14 +55,14 @@ async function getAbbreviations(): Promise<string[]> {
 async function findOrCreateStore(storeInput: string): Promise<mongoose.Types.ObjectId> {
   await dbConnect();
   if (mongoose.Types.ObjectId.isValid(storeInput)) {
-    const existingStore = await Store.findById(storeInput);
+    const existingStore = await ExpenseStore.findById(storeInput);
     if (existingStore) {
       return existingStore._id;
     }
   }
 
   const lowerCaseName = storeInput.toLowerCase();
-  const existingStoreByName = await Store.findOne({ name_lowercase: lowerCaseName });
+  const existingStoreByName = await ExpenseStore.findOne({ name_lowercase: lowerCaseName });
 
   if (existingStoreByName) {
     return existingStoreByName._id;
@@ -71,7 +71,7 @@ async function findOrCreateStore(storeInput: string): Promise<mongoose.Types.Obj
   const abbreviations = await getAbbreviations();
   const formattedName = formatDisplayName(storeInput, abbreviations);
 
-  const newStore = new Store({
+  const newStore = new ExpenseStore({
     name: formattedName,
     name_lowercase: lowerCaseName,
   });
@@ -87,7 +87,7 @@ async function processExpenseItems(items: ItemInput[], storeId: mongoose.Types.O
     let existingProduct = null;
 
     if (mongoose.Types.ObjectId.isValid(item.product)) {
-      existingProduct = await Product.findById(item.product);
+      existingProduct = await ExpenseProduct.findById(item.product);
       if (existingProduct && !existingProduct.store_id.equals(storeId)) {
         existingProduct = null;
       }
@@ -96,7 +96,7 @@ async function processExpenseItems(items: ItemInput[], storeId: mongoose.Types.O
     const lowerCaseName = item.name.toLowerCase();
 
     if (!existingProduct) {
-      existingProduct = await Product.findOne({
+      existingProduct = await ExpenseProduct.findOne({
         store_id: storeId,
         name_lowercase: lowerCaseName
       });
@@ -110,7 +110,7 @@ async function processExpenseItems(items: ItemInput[], storeId: mongoose.Types.O
       }
     } else {
       const formattedName = formatDisplayName(item.name, abbreviations);
-      const newProduct = new Product({
+      const newProduct = new ExpenseProduct({
         store_id: storeId,
         name: formattedName,
         name_lowercase: lowerCaseName,
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
     const pipeline: mongoose.PipelineStage[] = [
       {
         $lookup: {
-          from: 'stores',
+          from: 'expense_stores',
           localField: 'store',
           foreignField: '_id',
           as: 'storeInfo'
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
       },
       {
         $lookup: {
-          from: 'products',
+          from: 'expense_products',
           localField: 'items.product',
           foreignField: '_id',
           as: 'productDetails'

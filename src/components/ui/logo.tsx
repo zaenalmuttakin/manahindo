@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
@@ -19,7 +19,18 @@ const Logo = () => {
 
   const logoSrc = theme === 'dark' ? '/logo/sharia-logo-light.svg' : '/logo/sharia-logo-dark.svg';
 
-  return <SafeImage src={logoSrc} alt="Sharia Expense" width={120} height={32} />;
+  return (
+    <div style={{ position: 'relative', width: '120px', height: '32px' }}>
+      <SafeImage
+        src={logoSrc}
+        alt="Sharia Expense Logo"
+        fill
+        sizes="120px"
+        style={{ objectFit: 'contain' }}
+        priority
+      />
+    </div>
+  );
 };
 
 export default Logo;

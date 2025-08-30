@@ -1,24 +1,38 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import Image, { type ImageProps } from 'next/image';
 
-const SafeImage = (props: ImageProps) => {
-  const { src, ...rest } = props;
+interface SafeImageProps extends ImageProps {
+  fallbackSrc?: string | null;
+}
+
+const SafeImage = (props: SafeImageProps) => {
+  const { src, fallbackSrc = null, alt, ...rest } = props;
   const [imgSrc, setImgSrc] = useState(src);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     setImgSrc(src);
+    setIsError(false);
   }, [src]);
+
+  if (isError) {
+    return null;
+  }
 
   return (
     <Image
       {...rest}
       src={imgSrc}
+      alt={alt || "image"}
       onError={() => {
-        setImgSrc('/broken-image.png');
+        if (fallbackSrc) {
+          setImgSrc(fallbackSrc);
+        } else {
+          setIsError(true);
+        }
       }}
-      alt={props.alt} // Ensure alt is always passed
     />
   );
 };

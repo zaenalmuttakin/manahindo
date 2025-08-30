@@ -13,10 +13,10 @@ import { Plus, Trash2, CalendarIcon, UploadCloud, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import debounce from 'lodash.debounce';
+import debounce from "lodash.debounce";
 import { Expense } from "@/components/table/expense/ExpenseTable";
-import { useDropzone } from 'react-dropzone';
-import Image from 'next/image';
+import { useDropzone, type FileRejection } from "react-dropzone";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 // --- TYPES ---
@@ -55,7 +55,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [storeOptions, setStoreOptions] = useState<AutocompleteOption[]>([]);
   const [productOptions, setProductOptions] = useState<Record<number, ProductAutocompleteOption[]>>({});
-  
+
   // CORRECTED FILE UPLOAD STATE
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
       const res = await fetch(`/api/stores?name=${name}`);
       const data: IStore[] = await res.json();
       setStoreOptions(data.map(s => ({ value: s._id, label: s.name })));
-    } catch (e) { setStoreOptions([]); }
+    } catch { setStoreOptions([]); }
   }, 300), []);
 
   const fetchProducts = useMemo(() => debounce(async (name: string, storeId: string, index: number) => {
@@ -81,7 +81,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
       const data: IProduct[] = await res.json();
       const options: ProductAutocompleteOption[] = data.map(p => ({ value: p._id, label: p.name, price: p.price }));
       setProductOptions(prev => ({ ...prev, [index]: options }));
-    } catch (e) { setProductOptions(prev => ({ ...prev, [index]: [] })); }
+    } catch { setProductOptions(prev => ({ ...prev, [index]: [] })); }
   }, 300), []);
 
   // --- FORM INITIALIZATION ---
@@ -107,7 +107,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
     };
   }, [uploadedFiles]);
 
-  const onDrop = useCallback((acceptedFiles: File[], fileRejections: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
     setUploadError(null);
     const currentTotal = uploadedFiles.length + existingAttachments.length;
 
@@ -156,7 +156,7 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
       if (uploadedFiles.length > 0) {
         const filesToUpload = new FormData();
         // For new expenses, we need an ID first. For existing, we use the one we have.
-        const folderId = expenseId || 'temp'; 
+        const folderId = expenseId || 'temp';
         filesToUpload.append('folderId', folderId);
         uploadedFiles.forEach(uf => filesToUpload.append('files', uf.file));
 

@@ -14,18 +14,18 @@ const Logo = () => {
 
   if (!mounted) {
     // Render a placeholder to prevent layout shift
-    return <div style={{ width: '120px', height: '32px' }} />;
+    return <div style={{ width: '160px', height: '48px' }} />;
   }
 
   const logoSrc = theme === 'dark' ? '/logo/sharia-logo-light.svg' : '/logo/sharia-logo-dark.svg';
 
   return (
-    <div style={{ position: 'relative', width: '120px', height: '32px' }}>
+    <div style={{ position: 'relative', width: '160px', height: '48px' }}>
       <SafeImage
         src={logoSrc}
         alt="Sharia Expense Logo"
         fill
-        sizes="120px"
+        sizes="160px"
         style={{ objectFit: 'contain' }}
         priority
       />

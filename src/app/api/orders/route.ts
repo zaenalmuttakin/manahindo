@@ -23,41 +23,30 @@ async function getAbbreviations(): Promise<string[]> {
 
 // --- Helper: Find or Create Customer ---
 async function findOrCreateCustomer(customerInput: string, abbreviations: string[]): Promise<mongoose.Types.ObjectId> {
+  let customerId: mongoose.Types.ObjectId | null = null;
+
   if (mongoose.Types.ObjectId.isValid(customerInput)) {
     const existingCustomer = await Customer.findById(customerInput);
-    if (existingCustomer) return existingCustomer._id;
+    if (existingCustomer) {
+      customerId = existingCustomer._id;
+    }
   }
 
-  const customerByName = await Customer.findOne({ name: { $regex: new RegExp(`^${customerInput}'use client';
-
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Order from '@/models/Order';
-import Customer from '@/models/Customer';
-import Product from '@/models/Product';
-import mongoose from 'mongoose';
-import Abbreviation from '@/models/Abbreviation';
-import { formatDisplayName } from '@/lib/formatting';
-
-// Helper to get abbreviations
-let abbreviationsCache: string[] | null = null;
-async function getAbbreviations(): Promise<string[]> {
-  if (abbreviationsCache) {
-    return abbreviationsCache;
+  if (!customerId) { // Only search by name if not found by ID
+    const customerByName = await Customer.findOne({ name: { $regex: new RegExp(`^${customerInput}$`, 'i') } });
+    if (customerByName) {
+      customerId = customerByName._id;
+    }
   }
-  await dbConnect();
-  const abbreviations = await Abbreviation.find({}, 'name');
-  abbreviationsCache = abbreviations.map(a => a.name);
-  return abbreviationsCache;
-}
 
-// --- Helper: Find or Create Customer ---
-, 'i') } });
-  if (customerByName) return customerByName._id;
+  if (!customerId) { // Only create new if not found by ID or name
+    const newCustomer = new Customer({ name: formatDisplayName(customerInput, abbreviations), phone: '' });
+    await newCustomer.save();
+    customerId = newCustomer._id;
+  }
 
-  const newCustomer = new Customer({ name: formatDisplayName(customerInput, abbreviations), phone: '' });
-  await newCustomer.save();
-  return newCustomer._id;
+  // At this point, customerId should always be set
+  return customerId as mongoose.Types.ObjectId;
 }
 
 // --- Type for incoming order items from the client ---
@@ -75,19 +64,17 @@ interface OrderItemInput {
 // --- Helper: Process Order Items (Find or Create Products) ---
 async function processOrderItems(items: OrderItemInput[], abbreviations: string[]) {
   return Promise.all(items.map(async (item) => {
-    let productId: mongoose.Types.ObjectId;
+    let resolvedProductId: mongoose.Types.ObjectId | null = null;
     const { product, qty, color, note, discount } = item;
 
     if (mongoose.Types.ObjectId.isValid(product.value)) {
       const existingProduct = await Product.findById(product.value);
       if (existingProduct) {
-        productId = existingProduct._id;
-      } else {
-        const newProduct = new Product({ name: formatDisplayName(product.label, abbreviations), description: '' });
-        await newProduct.save();
-        productId = newProduct._id;
+        resolvedProductId = existingProduct._id;
       }
-    } else {
+    }
+
+    if (!resolvedProductId) {
       const productByName = await Product.findOne({ name: { $regex: new RegExp(`^${product.label}'use client';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -113,41 +100,30 @@ async function getAbbreviations(): Promise<string[]> {
 
 // --- Helper: Find or Create Customer ---
 async function findOrCreateCustomer(customerInput: string, abbreviations: string[]): Promise<mongoose.Types.ObjectId> {
+  let customerId: mongoose.Types.ObjectId | null = null;
+
   if (mongoose.Types.ObjectId.isValid(customerInput)) {
     const existingCustomer = await Customer.findById(customerInput);
-    if (existingCustomer) return existingCustomer._id;
+    if (existingCustomer) {
+      customerId = existingCustomer._id;
+    }
   }
 
-  const customerByName = await Customer.findOne({ name: { $regex: new RegExp(`^${customerInput}'use client';
-
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Order from '@/models/Order';
-import Customer from '@/models/Customer';
-import Product from '@/models/Product';
-import mongoose from 'mongoose';
-import Abbreviation from '@/models/Abbreviation';
-import { formatDisplayName } from '@/lib/formatting';
-
-// Helper to get abbreviations
-let abbreviationsCache: string[] | null = null;
-async function getAbbreviations(): Promise<string[]> {
-  if (abbreviationsCache) {
-    return abbreviationsCache;
+  if (!customerId) { // Only search by name if not found by ID
+    const customerByName = await Customer.findOne({ name: { $regex: new RegExp(`^${customerInput}$`, 'i') } });
+    if (customerByName) {
+      customerId = customerByName._id;
+    }
   }
-  await dbConnect();
-  const abbreviations = await Abbreviation.find({}, 'name');
-  abbreviationsCache = abbreviations.map(a => a.name);
-  return abbreviationsCache;
-}
 
-// --- Helper: Find or Create Customer ---
-, 'i') } });
-  if (customerByName) return customerByName._id;
+  if (!customerId) { // Only create new if not found by ID or name
+    const newCustomer = new Customer({ name: formatDisplayName(customerInput, abbreviations), phone: '' });
+    await newCustomer.save();
+    customerId = newCustomer._id;
+  }
 
-  const newCustomer = new Customer({ name: formatDisplayName(customerInput, abbreviations), phone: '' });
-  await newCustomer.save();
-  return newCustomer._id;
+  // At this point, customerId should always be set
+  return customerId as mongoose.Types.ObjectId;
 }
 
 // --- Type for incoming order items from the client ---
@@ -165,16 +141,18 @@ interface OrderItemInput {
 // --- Helper: Process Order Items (Find or Create Products) ---
 , 'i') } });
       if (productByName) {
-        productId = productByName._id;
-      } else {
-        const newProduct = new Product({ name: formatDisplayName(product.label, abbreviations), description: '' });
-        await newProduct.save();
-        productId = newProduct._id;
+        resolvedProductId = productByName._id;
       }
     }
 
+    if (!resolvedProductId) {
+      const newProduct = new Product({ name: formatDisplayName(product.label, abbreviations), description: '' });
+      await newProduct.save();
+      resolvedProductId = newProduct._id;
+    }
+
     return {
-      productId,
+      productId: resolvedProductId as mongoose.Types.ObjectId,
       productName: product.label,
       qty,
       color,

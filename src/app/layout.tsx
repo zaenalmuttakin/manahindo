@@ -42,10 +42,12 @@ export default function RootLayout({
         >
           <div className="flex">
             <Sidebar />
-            <main className="flex-1 px-4 sm:px-8 lg:px-12">
+            <div className="flex-1 ml-[50px]">
               <Navbar />
-              <div className="max-w-6xl mx-auto">{children}</div>
-            </main>
+              <main className="container mx-auto max-w-7xl p-4 sm:p-8 lg:p-12">
+                {children}
+              </main>
+            </div>
           </div>
           <Toaster
             richColors
@@ -55,6 +57,7 @@ export default function RootLayout({
                 closeButton: "left-auto right-8 top-2",
               },
             }}
+            className="z-[9999]"
           />
         </ThemeProvider>
       </body>

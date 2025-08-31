@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useTheme } from 'next-themes';
-import { Sun, Moon, Bell, Search, Command } from 'lucide-react';
+
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,10 +26,6 @@ interface NavbarProps {
   onMobileMenuToggle?: () => void;
   isMobile?: boolean;
 }
-import { MobileSidebar } from '@/components/sidebar/mobile-sidebar';
-import { ProfileMenu } from './profile-menu';
-import { DesktopNav } from './desktop-nav';
-import { ThemeToggle } from './theme-toggle';
 
 
 
@@ -40,40 +35,6 @@ import { ThemeToggle } from './theme-toggle';
 
 export default function Navbar({ onMobileMenuToggle, isMobile }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const GlobalSearchButton = () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    useEffect(() => {
-      const down = (e: KeyboardEvent) => {
-        if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-          e.preventDefault();
-          setIsOpen((open) => !open);
-        }
-      };
-
-      document.addEventListener('keydown', down);
-      return () => document.removeEventListener('keydown', down);
-    }, []);
-
-    return (
-      <>
-        <Button
-          variant="outline"
-          className="relative h-9 w-full justify-start rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground sm:w-64 lg:w-80"
-          onClick={() => setIsOpen(true)}
-        >
-          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-          <span className="hidden lg:inline-flex">Search anything...</span>
-          <span className="inline-flex lg:hidden">Search...</span>
-          <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-            <span className="text-xs">⌘</span>K
-          </kbd>
-        </Button>
-        <GlobalSearch open={isOpen} onOpenChange={setIsOpen} />
-      </>
-    );
-  };
 
   return (
     <motion.div
@@ -95,17 +56,7 @@ export default function Navbar({ onMobileMenuToggle, isMobile }: NavbarProps) {
 
         {/* Right side - Actions */}
         <div className="flex items-center space-x-2">
-          {isMobile && onMobileMenuToggle && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onMobileMenuToggle}
-              className="h-9 w-9 rounded-md hover:bg-accent hover:text-accent-foreground"
-              aria-label="Toggle mobile menu"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-          )}
+                    <GlobalSearch />
           <ThemeToggle />
           <ProfileMenu />
         </div>

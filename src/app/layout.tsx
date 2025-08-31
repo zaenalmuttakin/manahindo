@@ -40,9 +40,21 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+<<<<<<< HEAD
           <LayoutClient>
             {children}
           </LayoutClient>
+=======
+          <div className="flex">
+            <Sidebar />
+            <div className="flex-1 ml-[50px]">
+              <Navbar />
+              <main className="container mx-auto max-w-7xl p-4 sm:p-8 lg:p-12">
+                {children}
+              </main>
+            </div>
+          </div>
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
           <Toaster
             richColors
             position="top-right"
@@ -51,6 +63,7 @@ export default function RootLayout({
                 closeButton: "left-auto right-8 top-2",
               },
             }}
+            className="z-[9999]"
           />
         </ThemeProvider>
       </body>

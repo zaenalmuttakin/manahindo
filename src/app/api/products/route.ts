@@ -3,6 +3,8 @@ import dbConnect from '@/lib/mongodb';
 import ExpenseProduct from '@/models/ExpenseProduct';
 import mongoose from 'mongoose';
 
+// This route is for the old Expense form, using the ExpenseProduct model
+
 export async function GET(request: NextRequest) {
   await dbConnect();
 
@@ -14,12 +16,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Name query parameter is required' }, { status: 400 });
   }
 
+  // Store ID is required for context, as product names are unique per store
   if (!storeId || !mongoose.Types.ObjectId.isValid(storeId)) {
     return NextResponse.json({ error: 'Valid storeId query parameter is required' }, { status: 400 });
   }
 
   try {
-    // Search on the indexed lowercase field for better performance
     const products = await ExpenseProduct.find({
       store_id: new mongoose.Types.ObjectId(storeId),
       name_lowercase: { $regex: name.toLowerCase() }
@@ -27,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(products);
   } catch (error) {
-    console.error('Error fetching products:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Error fetching expense products';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

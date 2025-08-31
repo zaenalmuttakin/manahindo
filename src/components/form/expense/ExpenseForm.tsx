@@ -13,10 +13,15 @@ import { Plus, Trash2, CalendarIcon, UploadCloud, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import debounce from 'lodash.debounce';
+import debounce from "lodash.debounce";
 import { Expense } from "@/components/table/expense/ExpenseTable";
+<<<<<<< HEAD
 import { useDropzone, FileRejection } from 'react-dropzone';
 import Image from 'next/image';
+=======
+import { useDropzone, type FileRejection } from "react-dropzone";
+import Image from "next/image";
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
 import { motion } from "framer-motion";
 
 // --- TYPES ---
@@ -151,7 +156,24 @@ export default function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFor
     setIsSubmitting(true);
     try {
       let uploadedPaths: string[] = [];
+<<<<<<< HEAD
       let currentExpenseId = expense?._id; // Use a mutable variable for expense ID
+=======
+      const expenseId = expense?._id;
+
+      if (uploadedFiles.length > 0) {
+        const filesToUpload = new FormData();
+        // For new expenses, we need an ID first. For existing, we use the one we have.
+        const folderId = expenseId || 'temp';
+        filesToUpload.append('folderId', folderId);
+        uploadedFiles.forEach(uf => filesToUpload.append('files', uf.file));
+
+        const uploadRes = await fetch('/api/uploads', { method: 'POST', body: filesToUpload });
+        if (!uploadRes.ok) throw new Error('File upload failed.');
+        const uploadData = await uploadRes.json();
+        uploadedPaths = uploadData.paths;
+      }
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
 
       const total = data.items.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0);
       const payload = {

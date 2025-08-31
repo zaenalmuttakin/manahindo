@@ -1,13 +1,21 @@
 "use client";
 
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
+=======
+import React, { useState } from 'react';
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
 import Link from 'next/link';
+import { Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
+<<<<<<< HEAD
 import { useTheme } from 'next-themes';
 import { Sun, Moon, Bell, Search, Command } from 'lucide-react';
+=======
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
 
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+<<<<<<< HEAD
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +32,18 @@ interface NavbarProps {
   onMobileMenuToggle?: () => void;
   isMobile?: boolean;
 }
+=======
+import Logo from '@/components/ui/logo';
+import { MobileSidebar } from '@/components/sidebar/mobile-sidebar';
+import { ProfileMenu } from './profile-menu';
+import { DesktopNav } from './desktop-nav';
+import { ThemeToggle } from './theme-toggle';
 
-const ThemeToggle = () => {
-  const { setTheme, theme } = useTheme();
 
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
+
+
+<<<<<<< HEAD
   return (
     <Button
       variant="ghost"
@@ -55,15 +71,11 @@ const NotificationButton = () => {
     </Button>
   );
 };
+=======
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
 
-const ProfileMenu = ({ isMobile = false }) => {
-  // Placeholder for user data
-  const user = { name: 'John Doe', email: 'john.doe@example.com', image: '' };
-  const initials = user.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('');
 
+<<<<<<< HEAD
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -178,6 +190,26 @@ export default function Navbar({ onMobileMenuToggle, isMobile }: NavbarProps) {
         {/* Left side - Logo only */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center">
+=======
+
+export default function Navbar() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+      className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg"
+    >
+      <MobileSidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="lg:hidden z-51">
+            <Menu className="h-6 w-6" />
+          </Button>
+          <Link href="/" className="flex items-center space-x-2">
+>>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
             <Logo />
           </Link>
         </div>
@@ -208,14 +240,9 @@ export default function Navbar({ onMobileMenuToggle, isMobile }: NavbarProps) {
           )}
           <NotificationButton />
           <ThemeToggle />
-          <div className="hidden lg:block">
-            <ProfileMenu />
-          </div>
-          <div className="lg:hidden">
-            <ProfileMenu isMobile={true} />
-          </div>
+          <ProfileMenu />
         </div>
       </div>
-    </motion.header>
+    </motion.div>
   );
 }

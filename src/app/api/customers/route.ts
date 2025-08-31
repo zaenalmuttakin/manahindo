@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import ExpenseStore from '@/models/ExpenseStore';
+import Customer from '@/models/Customer';
 
 export async function POST(req: NextRequest) {
   await dbConnect();
   try {
     const body = await req.json();
-    const store = await ExpenseStore.create(body);
-    return NextResponse.json(store, { status: 201 });
+    const customer = await Customer.create(body);
+    return NextResponse.json(customer, { status: 201 });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error creating store';
+    console.error("[API_CUSTOMER_POST]", error);
+    const errorMessage = error instanceof Error ? error.message : 'Error creating customer';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -20,10 +21,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const name = searchParams.get('name');
     const query = name ? { name: { $regex: name, $options: 'i' } } : {};
-    const stores = await ExpenseStore.find(query).limit(10);
-    return NextResponse.json(stores);
+    const customers = await Customer.find(query);
+    return NextResponse.json(customers);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error fetching stores';
+    console.error("[API_CUSTOMER_GET]", error);
+    const errorMessage = error instanceof Error ? error.message : 'Error fetching customers';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

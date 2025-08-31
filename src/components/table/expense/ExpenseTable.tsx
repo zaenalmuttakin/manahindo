@@ -350,11 +350,11 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
           {paginatedDateGroups.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">Tidak ada data untuk ditampilkan.</div>
           ) : (
-            paginatedDateGroups.map(([date, dateExpenses]) => (
-              <div key={date} className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">{date}</h2>
+            paginatedDateGroups.map(([dateKey, dateExpenses]) => (
+              <div key={dateKey} className="mb-8">
+                <h2 className="text-xl font-semibold mb-4">{dateKey}</h2>
                 {dateExpenses.map((expense) => (
-                  <div key={expense._id} className="mb-6 border rounded-lg p-4">
+                  <div key={expense._id} className="mb-6 border rounded-lg p-4 bg-card border-border">
                     {editingExpenseId === expense._id ? (
                       <ExpenseForm 
                         expense={expense} 
@@ -363,17 +363,27 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
                       />
                     ) : (
                       <div>
-                        <h3 className="text-lg font-medium mb-2">{expense.storeInfo.name}</h3>
+                        <h3 className="text-lg font-medium mb-2 text-foreground">{expense.storeInfo.name}</h3>
                         <div className="relative w-full overflow-x-auto">
                           <Table>
                             <TableHeader>
-                              <TableRow><TableHead>Nama Barang</TableHead><TableHead>Qty</TableHead><TableHead>Harga</TableHead><TableHead>Jumlah</TableHead></TableRow>
+                              <TableRow className="bg-muted/50">
+                                <TableHead className="font-medium text-foreground">Nama Barang</TableHead>
+                                <TableHead className="font-medium text-foreground text-center">Qty</TableHead>
+                                <TableHead className="font-medium text-foreground text-right">Harga</TableHead>
+                                <TableHead className="font-medium text-foreground text-right">Jumlah</TableHead>
+                              </TableRow>
                             </TableHeader>
                             <TableBody>
                               {expense.items.map((item, index) => (
-                                <TableRow key={index}><TableCell>{item.name}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{item.price.toLocaleString('id-ID')}</TableCell><TableCell>{(item.quantity * item.price).toLocaleString('id-ID')}</TableCell></TableRow>
+                                <TableRow key={index} className="border-b border-border">
+                                  <TableCell className="font-medium text-foreground">{item.name}</TableCell>
+                                  <TableCell className="text-center text-muted-foreground">{item.quantity}</TableCell>
+                                  <TableCell className="text-right text-muted-foreground">{item.price.toLocaleString('id-ID')}</TableCell>
+                                  <TableCell className="text-right font-medium text-foreground">{(item.quantity * item.price).toLocaleString('id-ID')}</TableCell>
+                                </TableRow>
                               ))}
-                              <TableRow className="font-bold">
+                              <TableRow className="font-bold bg-muted/30">
                                 <TableCell>
                                   {expense.attachments && expense.attachments.length > 0 && (
                                     <div className="mt-2 flex items-center">
@@ -388,7 +398,7 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
                                                 fill
                                                 sizes="5vw"
                                                 style={{ objectFit: "cover" }}
-                                                className="rounded-md border"
+                                                className="rounded-md border border-border"
                                                 onClick={() => handleThumbnailClick(expense._id, expense.attachments, idx)}
                                               />
                                               <Button
@@ -417,15 +427,15 @@ export default function ExpenseTable({ expenses, loading, onDataChange }: Expens
                                     </div>
                                   )}
                                 </TableCell>
-                                <TableCell colSpan={2} className="text-right">Total</TableCell>
+                                <TableCell colSpan={2} className="text-right text-foreground">Total</TableCell>
                                 <TableCell>
-                                  <div className="text-left">{expense.total.toLocaleString('id-ID')}</div>
+                                  <div className="text-left font-bold text-foreground">{expense.total.toLocaleString('id-ID')}</div>
                                 </TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>
                         </div>
-                        <div className="flex justify-end space-x-2 mt-2">
+                        <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-border">
                           <Button variant="outline" size="sm" onClick={() => handleEditClick(expense._id)}>Edit</Button>
                           <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(expense)}>Hapus</Button>
                         </div>

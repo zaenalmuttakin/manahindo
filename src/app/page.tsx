@@ -30,12 +30,13 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="container mx-auto py-10">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-1">
+    <div className="w-full h-full">
+      {/* Mobile Layout - Stacked Vertically */}
+      <div className="block md:hidden space-y-6 p-4">
+        <div className="w-full">
           <ExpenseForm onSuccess={fetchExpenses} />
         </div>
-        <div className="lg:col-span-2">
+        <div className="w-full">
           <ExpenseTable 
             expenses={expenses} 
             loading={loading}
@@ -43,6 +44,22 @@ export default function Home() {
           />
         </div>
       </div>
-    </main>
+
+      {/* Desktop Layout - Side by Side */}
+      <div className="hidden md:block w-full h-full p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start h-full">
+          <div className="lg:col-span-1">
+            <ExpenseForm onSuccess={fetchExpenses} />
+          </div>
+          <div className="lg:col-span-2">
+            <ExpenseTable 
+              expenses={expenses} 
+              loading={loading}
+              onDataChange={fetchExpenses} 
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

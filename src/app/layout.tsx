@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import Navbar from "@/components/navbar/navbar";
-import { Sidebar } from "@/components/sidebar/sidebar";
+import LayoutClient from "@/components/layout-client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,13 +40,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex">
-            <Sidebar />
-            <main className="flex-1 px-4 sm:px-8 lg:px-12">
-              <Navbar />
-              <div className="max-w-6xl mx-auto">{children}</div>
-            </main>
-          </div>
+          <LayoutClient>
+            {children}
+          </LayoutClient>
           <Toaster
             richColors
             position="top-right"

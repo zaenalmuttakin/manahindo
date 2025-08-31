@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Autocomplete, AutocompleteOption } from '@/components/ui/autocomplete';
-import { Skeleton } from '@/components/ui/skeleton';
+
 import debounce from 'lodash.debounce';
 import { toast } from 'sonner';
 

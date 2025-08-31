@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 export interface AutocompleteOption {
   value: string;
   label: string;
+  __isNew__?: boolean;
 }
 
 interface AutocompleteProps {
@@ -19,6 +20,7 @@ interface AutocompleteProps {
   placeholder?: string;
   emptyMessage?: string;
   isFocused?: boolean;
+  creatable?: boolean;
 }
 
 export function Autocomplete({

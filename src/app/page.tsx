@@ -30,23 +30,17 @@ export default function Home() {
   }, []);
 
   return (
-<<<<<<< HEAD
-    <div className="w-full h-full">
-      {/* Mobile Layout - Stacked Vertically */}
-      <div className="block md:hidden space-y-6 p-4">
-        <div className="w-full">
-=======
     <main>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      {/* Mobile Layout */}
+      <div className="md:hidden grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-1">
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
           <ExpenseForm onSuccess={fetchExpenses} />
         </div>
-        <div className="w-full">
-          <ExpenseTable 
-            expenses={expenses} 
+        <div className="lg:col-span-2">
+          <ExpenseTable
+            expenses={expenses}
             loading={loading}
-            onDataChange={fetchExpenses} 
+            onDataChange={fetchExpenses}
           />
         </div>
       </div>
@@ -58,14 +52,14 @@ export default function Home() {
             <ExpenseForm onSuccess={fetchExpenses} />
           </div>
           <div className="lg:col-span-2">
-            <ExpenseTable 
-              expenses={expenses} 
+            <ExpenseTable
+              expenses={expenses}
               loading={loading}
-              onDataChange={fetchExpenses} 
+              onDataChange={fetchExpenses}
             />
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

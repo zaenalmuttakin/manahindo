@@ -75,71 +75,7 @@ async function processOrderItems(items: OrderItemInput[], abbreviations: string[
     }
 
     if (!resolvedProductId) {
-      const productByName = await Product.findOne({ name: { $regex: new RegExp(`^${product.label}'use client';
-
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Order from '@/models/Order';
-import Customer from '@/models/Customer';
-import Product from '@/models/Product';
-import mongoose from 'mongoose';
-import Abbreviation from '@/models/Abbreviation';
-import { formatDisplayName } from '@/lib/formatting';
-
-// Helper to get abbreviations
-let abbreviationsCache: string[] | null = null;
-async function getAbbreviations(): Promise<string[]> {
-  if (abbreviationsCache) {
-    return abbreviationsCache;
-  }
-  await dbConnect();
-  const abbreviations = await Abbreviation.find({}, 'name');
-  abbreviationsCache = abbreviations.map(a => a.name);
-  return abbreviationsCache;
-}
-
-// --- Helper: Find or Create Customer ---
-async function findOrCreateCustomer(customerInput: string, abbreviations: string[]): Promise<mongoose.Types.ObjectId> {
-  let customerId: mongoose.Types.ObjectId | null = null;
-
-  if (mongoose.Types.ObjectId.isValid(customerInput)) {
-    const existingCustomer = await Customer.findById(customerInput);
-    if (existingCustomer) {
-      customerId = existingCustomer._id;
-    }
-  }
-
-  if (!customerId) { // Only search by name if not found by ID
-    const customerByName = await Customer.findOne({ name: { $regex: new RegExp(`^${customerInput}$`, 'i') } });
-    if (customerByName) {
-      customerId = customerByName._id;
-    }
-  }
-
-  if (!customerId) { // Only create new if not found by ID or name
-    const newCustomer = new Customer({ name: formatDisplayName(customerInput, abbreviations), phone: '' });
-    await newCustomer.save();
-    customerId = newCustomer._id;
-  }
-
-  // At this point, customerId should always be set
-  return customerId as mongoose.Types.ObjectId;
-}
-
-// --- Type for incoming order items from the client ---
-interface OrderItemInput {
-  product: {
-    value: string;
-    label: string;
-  };
-  qty: number;
-  color?: string;
-  note?: string;
-  discount?: number;
-}
-
-// --- Helper: Process Order Items (Find or Create Products) ---
-, 'i') } });
+      const productByName = await Product.findOne({ name: { $regex: new RegExp(`^${product.label}$`, 'i') } });
       if (productByName) {
         resolvedProductId = productByName._id;
       }

@@ -27,7 +27,7 @@ export function ProfileMenu() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount z-52>
+      <DropdownMenuContent className="w-56 z-52" align="end" forceMount>
         <DropdownMenuItem>Profile</DropdownMenuItem>
         <DropdownMenuItem>Settings</DropdownMenuItem>
         <DropdownMenuSeparator />

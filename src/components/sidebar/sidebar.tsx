@@ -1,10 +1,8 @@
 'use client';
 
-<<<<<<< HEAD
 import { useState, useRef, RefObject, Dispatch, SetStateAction, useCallback } from "react";
-=======
-import { useState } from "react";
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useOnClickOutside } from "usehooks-ts";
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -13,12 +11,9 @@ import {
   Settings,
   Wallet,
   Users,
-<<<<<<< HEAD
   X,
   Search,
-=======
   ListCheckIcon,
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,6 +52,7 @@ const navLinks = [
     href: "/orders/create",
     label: "Create Order",
     icon: ListCheckIcon,
+    description: "Create a new order",
   },
   {
     href: "/products",
@@ -72,7 +68,6 @@ const navLinks = [
   },
 ];
 
-<<<<<<< HEAD
 // Mobile navigation component with improved design
 const MobileNav = ({ onLinkClick }: { onLinkClick: () => void }) => {
   const pathname = usePathname();
@@ -105,8 +100,6 @@ const MobileNav = ({ onLinkClick }: { onLinkClick: () => void }) => {
         </div>
       </div>
       
-      {/* Navigation Links */}
-
       {/* Team Selector */}
       <div className="p-4">
         <DropdownMenu>
@@ -155,7 +148,7 @@ const MobileNav = ({ onLinkClick }: { onLinkClick: () => void }) => {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-4">
+      <nav className="flex-1 px-4 pt-4">
         <div className="space-y-2">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} onClick={onLinkClick}>
@@ -171,7 +164,7 @@ const MobileNav = ({ onLinkClick }: { onLinkClick: () => void }) => {
                 <link.icon className="mr-3 h-5 w-5 text-muted-foreground" />
                 <div className="text-left">
                   <div className="font-medium text-foreground">{link.label}</div>
-                  <div className="text-sm text-muted-foreground">{link.description}</div>
+                  {link.description && <div className="text-sm text-muted-foreground">{link.description}</div>}
                 </div>
               </Button>
             </Link>
@@ -205,17 +198,12 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobileMenuOpen, onMobil
   useOnClickOutside(mobileMenuRef as RefObject<HTMLElement>, () => {
     if (onMobileMenuToggle) onMobileMenuToggle();
   });
-=======
-export function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const pathname = usePathname();
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
+
 
   const toggleSidebar = useCallback(() => {
     setIsCollapsed(!isCollapsed);
   }, [isCollapsed, setIsCollapsed]);
 
-<<<<<<< HEAD
   // Mobile sidebar overlay
   if (isMobile && onMobileMenuToggle) {
     return (
@@ -252,9 +240,6 @@ export function Sidebar() {
   }
 
   // Desktop sidebar
-=======
-  // If desktop, render the standard collapsible sidebar
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
   return (
     <TooltipProvider>
       <motion.aside
@@ -262,38 +247,28 @@ export function Sidebar() {
         animate={{
           x: 0,
           opacity: 1,
-<<<<<<< HEAD
-          width: isCollapsed ? 64 : 280,
+          width: isCollapsed ? 50 : 280,
         }}
-        transition={{ type: 'spring', stiffness: 120, damping: 20 }}
         className={cn(
           "h-screen bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg border-r border-border flex flex-col fixed top-0 left-0 z-40",
-          isCollapsed ? "p-3" : "p-6"
-=======
-          width: isCollapsed ? 50 : 250,
-        }}
-        transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-        className={cn(
-          "h-[calc(100vh-4rem)] fixed top-[4rem] left-0 z-51 bg-background/80 backdrop-blur-lg border-r flex-col hidden lg:flex",
-          isCollapsed ? "p-2 w-[50px]" : "p-4 w-64"
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
+          isCollapsed ? "p-2" : "p-4"
         )}
+        transition={{ type: 'spring', stiffness: 120, damping: 20 }}
       >
-        {/* Header */}
-        <div className="flex-grow">
-          <div className="flex items-center justify-between mb-8">
+        <div className="flex-grow flex flex-col">
+          {/* Header */}
+          <div className="mb-8">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full flex items-center h-12 transition-all duration-200",
-                    isCollapsed ? "justify-center px-2" : "justify-start px-4"
+                    "w-full flex items-center h-14 transition-all duration-200",
+                    isCollapsed ? "justify-center px-0" : "justify-start px-3"
                   )}
                 >
-<<<<<<< HEAD
                   <motion.div layout="position" className="flex items-center">
-                    <div className="p-2 rounded-lg bg-primary">
+                    <div className="p-2 rounded-lg bg-primary flex-shrink-0">
                       <Users className="h-5 w-5 text-primary-foreground" />
                     </div>
                     <AnimatePresence>
@@ -303,39 +278,21 @@ export function Sidebar() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -20 }}
                           transition={{ duration: 0.2, delay: 0.1 }}
-                          className="ml-3 text-left"
-=======
-                  <div className="flex items-center">
-                    <div className="w-6 flex-shrink-0">
-                      <Users className="h-6 w-6" />
-                    </div>
-                    <AnimatePresence>
-                      {!isCollapsed && (
-                        <motion.span
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: "auto", opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="ml-4 whitespace-nowrap overflow-hidden"
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
+                          className="ml-3 text-left whitespace-nowrap overflow-hidden"
                         >
                           <div className="font-semibold text-foreground">Switch Team</div>
                           <div className="text-sm text-muted-foreground">Team A</div>
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
+                  </motion.div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                side={isCollapsed ? "right" : "bottom"}
-                align={isCollapsed ? "start" : "center"}
+                side="right"
+                align="start"
                 sideOffset={8}
-<<<<<<< HEAD
                 className="z-[80] w-56"
-=======
-                className="z-[52] w-48"
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
               >
                 <DropdownMenuItem className="h-12 px-4">
                   <div className="flex items-center">
@@ -369,7 +326,7 @@ export function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="space-y-2">
+          <nav className="flex-1 space-y-2">
             {navLinks.map((link, index) => (
               <Tooltip key={link.href}>
                 <TooltipTrigger asChild>
@@ -378,10 +335,7 @@ export function Sidebar() {
                       variant={pathname === link.href ? "secondary" : "ghost"}
                       className={cn(
                         "w-full flex items-center h-12 transition-all duration-200",
-                        isCollapsed ? "justify-center px-2" : "justify-start px-4",
-                        pathname === link.href 
-                          ? "bg-secondary text-secondary-foreground shadow-sm" 
-                          : "hover:bg-accent hover:text-accent-foreground"
+                        isCollapsed ? "justify-center px-0" : "justify-start px-3"
                       )}
                     >
                       <motion.div layout="position" className="flex items-center">
@@ -391,13 +345,12 @@ export function Sidebar() {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
                           className={cn(
-                            "p-2 rounded-lg transition-colors duration-200",
+                            "p-2 rounded-lg transition-colors duration-200 flex-shrink-0",
                             pathname === link.href 
                               ? "bg-primary/10 text-primary" 
                               : "text-muted-foreground"
                           )}
                         >
-<<<<<<< HEAD
                           <link.icon className="h-5 w-5" />
                         </motion.div>
                         <AnimatePresence>
@@ -407,10 +360,10 @@ export function Sidebar() {
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: -20 }}
                               transition={{ duration: 0.2, delay: 0.1 + index * 0.05 }}
-                              className="ml-3 text-left"
+                              className="ml-3 text-left whitespace-nowrap overflow-hidden"
                             >
                               <div className="font-medium text-foreground">{link.label}</div>
-                              <div className="text-sm text-muted-foreground">{link.description}</div>
+                              {link.description && <div className="text-sm text-muted-foreground">{link.description}</div>}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -422,56 +375,23 @@ export function Sidebar() {
                   <TooltipContent side="right" className="z-[80]">
                     <div>
                       <div className="font-medium">{link.label}</div>
-                      <div className="text-sm text-muted-foreground">{link.description}</div>
+                      {link.description && <div className="text-sm text-muted-foreground">{link.description}</div>}
                     </div>
                   </TooltipContent>
                 )}
               </Tooltip>
             ))}
-=======
-                          <div className="flex items-center">
-                            <div className="w-6 flex-shrink-0">
-                              <link.icon className="h-6 w-6" />
-                            </div>
-                            <AnimatePresence>
-                              {!isCollapsed && (
-                                <motion.span
-                                  initial={{ width: 0, opacity: 0 }}
-                                  animate={{ width: "auto", opacity: 1 }}
-                                  exit={{ width: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2, delay: 0.1 + index * 0.05 }}
-                                  className="ml-4 whitespace-nowrap overflow-hidden"
-                                >
-                                  {link.label}
-                                </motion.span>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        </Button>
-                      </Link>
-                    </TooltipTrigger>
-                    {isCollapsed && (
-                      <TooltipContent side="right" className="z-[52]">
-                        <p>{link.label}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </li>
-              ))}
-            </ul>
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
           </nav>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border pt-4">
+        <div className="border-t border-border pt-4 mt-4">
           <Button
             onClick={toggleSidebar}
             variant="ghost"
-<<<<<<< HEAD
             className={cn(
               "w-full flex items-center h-12 transition-all duration-200",
-              isCollapsed ? "justify-center px-2" : "justify-start px-4"
+              isCollapsed ? "justify-center px-0" : "justify-start px-3"
             )}
           >
             <motion.div layout="position" className="flex items-center">
@@ -482,18 +402,11 @@ export function Sidebar() {
                   animate={{ opacity: 1, rotate: 0 }}
                   exit={{ opacity: 0, rotate: 90 }}
                   transition={{ duration: 0.2 }}
-                  className="p-2 rounded-lg bg-accent text-accent-foreground"
+                  className="p-2 rounded-lg bg-accent text-accent-foreground flex-shrink-0"
                 >
                   {isCollapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
                 </motion.div>
               </AnimatePresence>
-=======
-            className={cn("w-full flex items-center", isCollapsed ? "justify-center" : "justify-start")}>
-            <div className="flex items-center">
-                <div className="flex items-center">
-                  {isCollapsed ? <ChevronsRight className="h-8 w-8" /> : <ChevronsLeft className="h-8 w-8" />}
-                </div>
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
               <AnimatePresence>
                 {!isCollapsed && (
                   <motion.span
@@ -501,13 +414,13 @@ export function Sidebar() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2, delay: 0.1 }}
-                    className="ml-3 font-medium text-foreground"
+                    className="ml-3 font-medium text-foreground whitespace-nowrap overflow-hidden"
                   >
                     Collapse
                   </motion.span>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
           </Button>
         </div>
       </motion.aside>

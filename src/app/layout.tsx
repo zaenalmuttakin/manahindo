@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import Navbar from "@/components/navbar/navbar";
+
 import LayoutClient from "@/components/layout-client";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -32,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} antialiased`}
       >
         <ThemeProvider
           attribute="class"
@@ -40,21 +35,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-<<<<<<< HEAD
           <LayoutClient>
             {children}
           </LayoutClient>
-=======
-          <div className="flex">
-            <Sidebar />
-            <div className="flex-1 ml-[50px]">
-              <Navbar />
-              <main className="container mx-auto max-w-7xl p-4 sm:p-8 lg:p-12">
-                {children}
-              </main>
-            </div>
-          </div>
->>>>>>> e306945224a6eb3b53126efe517d23f7d5d88b5b
           <Toaster
             richColors
             position="top-right"

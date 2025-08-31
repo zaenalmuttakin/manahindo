@@ -32,7 +32,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
             onMobileMenuToggle={handleMobileMenuToggle}
             isMobile={isMobile}
           />
-          <main className="flex-1 w-full">
+          <main className="flex-1 w-full p-4 sm:p-6 md:p-8">
             {children}
           </main>
         </div>

@@ -240,6 +240,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobileMenuOpen, onMobil
   }
 
   // Desktop sidebar
+  // If desktop, render the standard collapsible sidebar
   return (
     <TooltipProvider>
       <motion.aside
@@ -247,11 +248,11 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobileMenuOpen, onMobil
         animate={{
           x: 0,
           opacity: 1,
-          width: isCollapsed ? 50 : 280,
+          width: isCollapsed ? 64 : 280,
         }}
         className={cn(
           "h-screen bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg border-r border-border flex flex-col fixed top-0 left-0 z-40",
-          isCollapsed ? "p-2" : "p-4"
+          isCollapsed ? "p-3 w-[50px]" : "p-6 w-64"
         )}
         transition={{ type: 'spring', stiffness: 120, damping: 20 }}
       >
@@ -278,15 +279,28 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobileMenuOpen, onMobil
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -20 }}
                           transition={{ duration: 0.2, delay: 0.1 }}
-                          className="ml-3 text-left whitespace-nowrap overflow-hidden"
+                          className="ml-3 text-left">
+                  <div className="flex items-center">
+                    <div className="w-6 flex-shrink-0">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <AnimatePresence>
+                      {isCollapsed && (
+                        <motion.div
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: "auto", opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="ml-4 whitespace-nowrap overflow-hidden"
                         >
                           <div className="font-semibold text-foreground">Switch Team</div>
                           <div className="text-sm text-muted-foreground">Team A</div>
                         </motion.div>
-                      )}
+                      )
                     </AnimatePresence>
                   </motion.div>
                 </Button>
+              </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="right"
@@ -381,6 +395,36 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobileMenuOpen, onMobil
                 )}
               </Tooltip>
             ))}
+                          <div className="flex items-center">
+                            <div className="w-6 flex-shrink-0">
+                              <link.icon className="h-6 w-6" />
+                            </div>
+                            <AnimatePresence>
+                              {!isCollapsed && (
+                                <motion.span
+                                  initial={{ width: 0, opacity: 0 }}
+                                  animate={{ width: "auto", opacity: 1 }}
+                                  exit={{ width: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, delay: 0.1 + index * 0.05 }}
+                                  className="ml-4 whitespace-nowrap overflow-hidden"
+                                >
+                                  {link.label}
+                                </motion.span>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                      <TooltipContent side="right" className="z-[52]">
+                        <p>{link.label}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </li>
+              ))}
+            </ul>
           </nav>
         </div>
 
@@ -407,6 +451,11 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobileMenuOpen, onMobil
                   {isCollapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
                 </motion.div>
               </AnimatePresence>
+            className={cn("w-full flex items-center", isCollapsed ? "justify-center" : "justify-start")}>
+            <div className="flex items-center">
+                <div className="flex items-center">
+                  {isCollapsed ? <ChevronsRight className="h-8 w-8" /> : <ChevronsLeft className="h-8 w-8" />}
+                </div>
               <AnimatePresence>
                 {!isCollapsed && (
                   <motion.span

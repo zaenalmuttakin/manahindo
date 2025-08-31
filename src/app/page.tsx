@@ -37,8 +37,8 @@ export default function Home() {
           <ExpenseForm onSuccess={fetchExpenses} />
         </div>
         <div className="lg:col-span-2">
-          <ExpenseTable
-            expenses={expenses}
+          <ExpenseTable 
+            expenses={expenses} 
             loading={loading}
             onDataChange={fetchExpenses}
           />
